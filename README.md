@@ -59,7 +59,14 @@ On Cyby the Dropbox details are in KOReader's own cloud-storage settings.
    tappable grid squares) from OpenStreetMap data.
 3. **Save Wikipedia pictures from Cyby**: a KOReader plugin that sends a picture from a
    Wikipedia lookup to #sleepy-screens, or saves it to a folder.
-4. **The Pi**: hardware, set-up, move gleaner across.
+4. **Substack letters**: gleaner checks a few chosen Substack publications and sends new
+   *free* posts (paid-only ones skipped) as EPUBs to their own Cyby folder. Managed from a
+   Discord channel: post a link to subscribe, `!unsubscribe`, `!list`, and `!cap 3` for a
+   weekly limit. Only new posts, never a back catalogue.
+5. **The Pi**: hardware, set-up, move gleaner across.
+6. **exlo off-grid**: GPS from the H2T, exlo's own Wi-Fi so Cyby can collect from it away
+   from home, local map atlases, and a daily briefing card (sunrise/sunset, moon, saved
+   forecast, barometer, tide tables fetched ahead).
 
 Parked: #readings automatically fixing books with no working table of contents (convert to EPUB with chapters), Cyby highlights into a reading-notes forum, a weekly reading note, WIKISTACK daily
 cards on Cyby, SSH to Cyby, mesh radio (LoRa/Meshtastic) and Winlink.
