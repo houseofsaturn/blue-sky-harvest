@@ -31,6 +31,7 @@ sleep screen; anything deleted on Cyby stays deleted.
 | [`gleaner/`](gleaner/) | The Discord bot (Python). Runs on the MacBook as a background service for now; built to move to a Raspberry Pi. |
 | [`koreader/gleanings.koplugin/`](koreader/gleanings.koplugin/) | Cyby's sync plugin. Copy the folder to `koreader/plugins/` on the Kindle. |
 | [`tools/wikidict.py`](tools/wikidict.py) | Builds an offline Wikipedia dictionary for Cyby from the Wikipedia `.zim` on exlo. |
+| [`tools/mobi2epub.py`](tools/mobi2epub.py) | Turns an old Kindle MOBI into a clean EPUB with a working (optionally nested) table of contents. Used for *Labyrinths*; the start of the planned #readings fixer. |
 
 ## Secrets
 
@@ -60,5 +61,5 @@ On Cyby the Dropbox details are in KOReader's own cloud-storage settings.
    Wikipedia lookup to #sleepy-screens, or saves it to a folder.
 4. **The Pi**: hardware, set-up, move gleaner across.
 
-Parked: Cyby highlights into a reading-notes forum, a weekly reading note, WIKISTACK daily
+Parked: #readings automatically fixing books with no working table of contents (convert to EPUB with chapters), Cyby highlights into a reading-notes forum, a weekly reading note, WIKISTACK daily
 cards on Cyby, SSH to Cyby, mesh radio (LoRa/Meshtastic) and Winlink.
