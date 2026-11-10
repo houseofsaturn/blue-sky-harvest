@@ -47,7 +47,7 @@ import trafilatura
 from ebooklib import epub
 from PIL import Image
 
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 CONFIG_DIR = Path(os.environ.get("GLEANER_CONFIG_DIR", Path.home() / ".gleaner"))
 USER_AGENT = (
@@ -712,6 +712,11 @@ BOOK_TYPES = {"application/epub+zip": ".epub", "application/pdf": ".pdf",
               "application/vnd.comicbook+zip": ".cbz", "application/x-cbz": ".cbz"}
 
 
+# Files that travel with a book (e.g. from a Calibre library) but aren't the book:
+# skipped quietly when they're posted alongside one.
+BOOK_SIDECARS = (".opf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".ncx", ".db", ".json", ".xml", ".nfo")
+
+
 def book_filename(filename: str) -> str:
     """The book's own filename, made safe for Kindle storage and KOReader's Dropbox
     download: plain ASCII, no date prefix (books aren't news)."""
@@ -749,7 +754,8 @@ def glean_book(filename: str, data: bytes, delivery: Delivery) -> Result:
     name = book_filename(filename)
     check_book(name, data)
     stored = delivery.save(name, data, BOOKS_FOLDER)
-    return Result(book_title(stored), "book", stored, f"{len(data) / 1e6:.1f} MB")
+    size = f"{len(data) / 1e6:.1f} MB" if len(data) >= 1e6 else f"{max(1, len(data) // 1000)} KB"
+    return Result(book_title(stored), "book", stored, size)
 
 
 def glean_book_url(url: str, delivery: Delivery) -> Result:
@@ -1150,6 +1156,8 @@ class Gleaner(discord.Client):
             lines.append("_Picked up after being offline._")
         centred = wants_centre(message.content)
         target = "collection" if wants_collection(message.content) else "queue"
+        skipped = [item for kind, item in jobs if kind == "skipped"]
+        jobs = [(kind, item) for kind, item in jobs if kind != "skipped"]
         for index, (kind, item) in enumerate(jobs, 1):
             try:
                 if kind == "listen":
@@ -1189,6 +1197,9 @@ class Gleaner(discord.Client):
                 log.exception("unexpected failure on %r", item)
                 lines.append(f"❌ something went wrong ({type(e).__name__}: {e})")
 
+        for names in skipped:
+            lines.append(f"_Left out {len(names)} extra file{'s' if len(names) != 1 else ''} "
+                         f"that came with the book (cover/details): {', '.join(names)}_")
         await safe_unreact(message, "⏳")
         await safe_react(message, "✅" if failed == 0 else ("⚠️" if failed < len(jobs) else "❌"))
         if failed < len(jobs) and self.kind_of(message.channel) != "listen":
@@ -1220,8 +1231,14 @@ def message_jobs(message: discord.Message, kind: str | None = "gleanings") -> li
     if kind == "books":
         for url in dict.fromkeys(urls):
             jobs.append(("book_url", url))
-        for att in message.attachments:
-            jobs.append(("book", att))
+        books = [a for a in message.attachments if Path(a.filename).suffix.lower() in BOOK_EXTS]
+        extras = [a for a in message.attachments if a not in books]
+        if (books or jobs) and all(Path(a.filename).suffix.lower() in BOOK_SIDECARS for a in extras):
+            jobs += [("book", a) for a in books]
+            if extras:
+                jobs.append(("skipped", [a.filename for a in extras]))
+        else:
+            jobs += [("book", a) for a in message.attachments]
         return jobs
     if kind == "screens":
         for url in dict.fromkeys(urls):
