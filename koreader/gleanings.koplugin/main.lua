@@ -15,7 +15,7 @@ It also mirrors gleaner's screensavers/ folder into /mnt/us/screensavers (images
 whose Discord posts were deleted are removed), and can point KOReader's sleep
 screen at it: Tools -> Gleanings -> Use #sleepy-screens images as sleep screen.
 
-Ebooks from gleaner's books/ folder go into documents/books (beside the
+Ebooks from gleaner's readings/ folder go into documents/readings (beside the
 gleanings folder), delivered once like everything else.
 
 Files are fetched by their Dropbox id, so titles with curly quotes or
@@ -43,7 +43,7 @@ local AUTO_SETTING = "gleanings_auto_sync"
 local LAST_SETTING = "gleanings_last_sync"
 local SEEN_SETTING = "gleanings_delivered"   -- Dropbox ids already brought down
 local SCREENS_FOLDER = "screensavers"
-local BOOKS_FOLDER = "books"
+local BOOKS_FOLDER = "readings"
 local MIN_GAP = 90          -- seconds between automatic syncs
 local AUTO_DELAY = 4        -- give Wi-Fi a moment to settle before syncing
 
@@ -324,7 +324,7 @@ function Gleanings:doSync(silent)
     local names = {}
     local got, failed = deliver(files, dest, names)
 
-    -- Ebooks: Dropbox books/ -> documents/books, next to the gleanings folder.
+    -- Ebooks: Dropbox readings/ -> documents/readings, next to the gleanings folder.
     local b_got = 0
     local src = server.sync_source_folder
     if src == nil or src == "/" then src = "" end
@@ -390,7 +390,7 @@ function Gleanings:doSync(silent)
     report(text, got == 0 and b_got == 0 and s_got == 0 and s_gone == 0 and failed == 0 and 2 or nil)
 end
 
--- Books sit beside the gleanings folder: /mnt/us/documents/books on a Kindle.
+-- Readings sit beside the gleanings folder: /mnt/us/documents/readings on a Kindle.
 function Gleanings.booksDir()
     local server = findServer()
     local dest = server and server.sync_dest_folder or ""

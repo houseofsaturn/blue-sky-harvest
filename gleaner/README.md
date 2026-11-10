@@ -21,8 +21,8 @@ Put the word `centre` in the message to centre it. Delete the post to delete the
 ### #readings → Cyby's books folder
 Attach an ebook (EPUB, PDF, MOBI, AZW3, FB2, DjVu, CBZ, TXT and other formats KOReader opens),
 or post a direct download link (up to 60 MB). It's passed through untouched, keeping its own
-filename (made plain ASCII), and Cyby files it in `documents/books`. Files too big for Discord
-can be dropped straight into Dropbox → Apps → cyby → books.
+filename (made plain ASCII), and Cyby files it in `documents/readings`. Files too big for Discord
+can be dropped straight into Dropbox → Apps → cyby → readings.
 
 ### #listenings → ctx.fm
 Post a music link (Bandcamp, YouTube and so on) and it is added to the ctx.fm queue.

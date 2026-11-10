@@ -88,7 +88,7 @@ class Settings:
     channel_name: str = "gleanings"
     screens_channel: str = "screensaver"
     listen_channel: str = "listening"
-    books_channel: str = "books"
+    books_channel: str = "readings"
     ctx_api_key: str = ""
     ctx_base: str = "https://ctx.fm"
     mode: str = "local"                  # "local" or "api"
@@ -703,7 +703,7 @@ def glean_text(text: str, delivery: Delivery) -> Result:
 # books: ebook files passed through untouched to their own folder
 # --------------------------------------------------------------------------
 
-BOOKS_FOLDER = "books"                   # Dropbox subfolder; Cyby puts these in documents/books
+BOOKS_FOLDER = "readings"                # Dropbox subfolder; Cyby puts these in documents/readings
 BOOK_EXTS = (".epub", ".kepub", ".pdf", ".mobi", ".azw", ".azw3", ".fb2", ".djvu", ".djv",
              ".cbz", ".cbr", ".cb7", ".txt", ".rtf", ".docx", ".chm", ".htmlz")
 BOOK_TYPES = {"application/epub+zip": ".epub", "application/pdf": ".pdf",
@@ -995,9 +995,9 @@ Commands: `!ctx` check the ctx.fm connection · `!ping` · `!help`"""
 BOOKS_HELP = """**gleaner** carries ebooks to Cyby from this channel. Post:
 • an attached **ebook** (EPUB, PDF, MOBI, AZW3, FB2, DjVu, CBZ, TXT…) → passed through untouched
 • a **direct download link** to one → fetched (up to 60 MB) and passed through
-Cyby files them in **documents/books** on its next sync.
+Cyby files them in **documents/readings** on its next sync.
 
-Too big for Discord? Post a link instead, or drop the file into Dropbox → Apps → cyby → books.
+Too big for Discord? Post a link instead, or drop the file into Dropbox → Apps → cyby → readings.
 Commands: `!recent` latest books · `!ping` · `!help`"""
 
 
@@ -1196,7 +1196,7 @@ class Gleaner(discord.Client):
                 n = await asyncio.to_thread(self.delivery.count, SCREENS_FOLDER)
                 lines.append(f"_Added to Cyby's sleep screens ({n} in rotation)._")
             elif self.kind_of(message.channel) == "books":
-                lines.append("_On its way to Cyby's books, it'll arrive on the next sync._")
+                lines.append("_On its way to Cyby's readings, it'll arrive on the next sync._")
             else:
                 lines.append("_Ready for Cyby, it'll collect this on its next sync._")
         await message.reply("\n".join(lines)[:1990], mention_author=False, suppress_embeds=True)
