@@ -4,8 +4,8 @@ A calmer way to take things from the internet. Nothing arrives unless JC chose i
 
 It is built around **Cyby**, a jailbroken Kindle Paperwhite 2 running KOReader, and
 **Blue Sky Harvest**, a private Discord server. Things posted to the server's channels
-are turned into something useful and delivered to Cyby, or to ctx.fm. There are no feeds,
-no RSS and no automatic sources.
+are turned into something useful and delivered to Cyby, or to ctx.fm. The only automatic
+source is #sstacks: a handful of chosen Substack writers, capped at a few posts a week.
 
 ```
  Discord: Blue Sky Harvest            gleaner (the bot)                 Dropbox: Apps/cyby          Cyby
@@ -16,6 +16,9 @@ no RSS and no automatic sources.
                                     5 mm margin, dithered                                      (random sleep screen)
  #readings      ebook files   ──▶  passed through untouched  ──▶  readings/*             ──▶  documents/readings
                 or links
+ #sstacks       Substack      ──▶  checks chosen writers;    ──▶  sstacks/*.epub        ──▶  documents/sstacks
+                links          new free posts → EPUB,
+                (subscribe)    weekly cap (!cap)
  #listenings    music links   ──▶  ctx.fm API: add to queue
                                     (or collection)
 ```
@@ -59,12 +62,8 @@ On Cyby the Dropbox details are in KOReader's own cloud-storage settings.
    tappable grid squares) from OpenStreetMap data.
 3. **Save Wikipedia pictures from Cyby**: a KOReader plugin that sends a picture from a
    Wikipedia lookup to #sleepy-screens, or saves it to a folder.
-4. **Substack letters**: gleaner checks a few chosen Substack publications and sends new
-   *free* posts (paid-only ones skipped) as EPUBs to their own Cyby folder. Managed from a
-   Discord channel: post a link to subscribe, `!unsubscribe`, `!list`, and `!cap 3` for a
-   weekly limit. Only new posts, never a back catalogue.
-5. **The Pi**: hardware, set-up, move gleaner across.
-6. **exlo off-grid**: GPS from the H2T, exlo's own Wi-Fi so Cyby can collect from it away
+4. **The Pi**: hardware, set-up, move gleaner across.
+5. **exlo off-grid**: GPS from the H2T, exlo's own Wi-Fi so Cyby can collect from it away
    from home, local map atlases, and a daily briefing card (sunrise/sunset, moon, saved
    forecast, barometer, tide tables fetched ahead).
 

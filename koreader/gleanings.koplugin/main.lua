@@ -15,7 +15,8 @@ It also mirrors gleaner's screensavers/ folder into /mnt/us/screensavers (images
 whose Discord posts were deleted are removed), and can point KOReader's sleep
 screen at it: Tools -> Gleanings -> Use #sleepy-screens images as sleep screen.
 
-Ebooks from gleaner's readings/ folder go into documents/readings (beside the
+Ebooks from gleaner's readings/ folder go into documents/readings, and Substack posts
+from sstacks/ into documents/sstacks (beside the
 gleanings folder), delivered once like everything else.
 
 Files are fetched by their Dropbox id, so titles with curly quotes or
@@ -43,7 +44,12 @@ local AUTO_SETTING = "gleanings_auto_sync"
 local LAST_SETTING = "gleanings_last_sync"
 local SEEN_SETTING = "gleanings_delivered"   -- Dropbox ids already brought down
 local SCREENS_FOLDER = "screensavers"
-local BOOKS_FOLDER = "readings"
+-- Folders that sit beside documents/gleanings, each filled from the Dropbox folder of
+-- the same name. one/many label what arrived.
+local SIDE_FOLDERS = {
+    { name = "readings", one = _("1 new reading"), many = _("%d new readings") },
+    { name = "sstacks",  one = _("1 new sstack"),  many = _("%d new sstacks") },
+}
 local MIN_GAP = 90          -- seconds between automatic syncs
 local AUTO_DELAY = 4        -- give Wi-Fi a moment to settle before syncing
 
@@ -324,20 +330,29 @@ function Gleanings:doSync(silent)
     local names = {}
     local got, failed = deliver(files, dest, names)
 
-    -- Ebooks: Dropbox readings/ -> documents/readings, next to the gleanings folder.
-    local b_got = 0
+    -- Side folders: Dropbox readings/ -> documents/readings, sstacks/ -> documents/sstacks.
+    local b_got, side_bits = 0, {}
     local src = server.sync_source_folder
     if src == nil or src == "/" then src = "" end
-    local book_files = listFiles(token, src .. "/" .. BOOKS_FOLDER)
-    if book_files then
-        local bdir = Gleanings.booksDir()
-        if #book_files > 0 and lfs.attributes(bdir, "mode") ~= "directory" then
-            lfs.mkdir(bdir)
+    local unsure = false
+    for _, folder in ipairs(SIDE_FOLDERS) do
+        local list = listFiles(token, src .. "/" .. folder.name)
+        if list then
+            local dir = Gleanings.sideDir(folder.name)
+            if #list > 0 and lfs.attributes(dir, "mode") ~= "directory" then
+                lfs.mkdir(dir)
+            end
+            local n, bad = deliver(list, dir, names)
+            failed = failed + bad
+            b_got = b_got + n
+            if n > 0 then
+                table.insert(side_bits, n == 1 and folder.one or string.format(folder.many, n))
+            end
+        else
+            unsure = true                    -- folder missing or unreachable: forget nothing
         end
-        local b_failed
-        b_got, b_failed = deliver(book_files, bdir, names)
-        failed = failed + b_failed
-    else
+    end
+    if unsure then
         for id in pairs(seen) do still_in_dropbox[id] = still_in_dropbox[id] or "keep" end
     end
 
@@ -362,7 +377,7 @@ function Gleanings:doSync(silent)
     if silent then
         local bits = {}
         if got > 0 then table.insert(bits, plural(got, _("1 new gleaning"), _("%d new gleanings"))) end
-        if b_got > 0 then table.insert(bits, plural(b_got, _("1 new book"), _("%d new books"))) end
+        for _, b in ipairs(side_bits) do table.insert(bits, b) end
         if s_got > 0 then table.insert(bits, plural(s_got, _("1 new sleep screen"), _("%d new sleep screens"))) end
         if #bits > 0 then UIManager:show(Notification:new{ text = table.concat(bits, ", ") }) end
         if failed > 0 then logger.warn("Gleanings:", failed, "file(s) failed") end
@@ -374,8 +389,8 @@ function Gleanings:doSync(silent)
         text = _("Gleanings: nothing new.")
     else
         text = string.format(_("Gleanings: %d new."), got)
-        if b_got > 0 then
-            text = text .. " " .. plural(b_got, _("1 new book."), _("%d new books."))
+        if #side_bits > 0 then
+            text = text .. " " .. table.concat(side_bits, ", ") .. "."
         end
         if #names > 0 and #names <= 5 then
             text = text .. "\n\n" .. table.concat(names, "\n")
@@ -390,12 +405,12 @@ function Gleanings:doSync(silent)
     report(text, got == 0 and b_got == 0 and s_got == 0 and s_gone == 0 and failed == 0 and 2 or nil)
 end
 
--- Readings sit beside the gleanings folder: /mnt/us/documents/readings on a Kindle.
-function Gleanings.booksDir()
+-- Side folders sit beside the gleanings folder: /mnt/us/documents/readings on a Kindle.
+function Gleanings.sideDir(name)
     local server = findServer()
     local dest = server and server.sync_dest_folder or ""
     local parent = dest:match("^(.*)/[^/]+/?$") or DataStorage:getDataDir()
-    return parent .. "/" .. BOOKS_FOLDER
+    return parent .. "/" .. name
 end
 
 -- ---------------------------------------------------------------- sleep screens

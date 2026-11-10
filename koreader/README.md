@@ -1,7 +1,7 @@
 # gleanings.koplugin
 
 Cyby's half of gleaner. It downloads new files from the `cyby` Dropbox app folder into
-`documents/gleanings`, ebooks from `readings/` into `documents/readings`, and mirrors `screensavers/` into `/mnt/us/screensavers` for sleep screens.
+`documents/gleanings`, ebooks from `readings/` into `documents/readings`, Substack posts from `sstacks/` into `documents/sstacks`, and mirrors `screensavers/` into `/mnt/us/screensavers` for sleep screens.
 
 - Syncs by itself when Wi-Fi connects or Cyby wakes (Tools → Gleanings → Sync automatically).
 - Downloads by Dropbox file id, so non-English filenames work, and remembers what it has

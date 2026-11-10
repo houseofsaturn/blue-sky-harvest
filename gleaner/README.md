@@ -1,6 +1,6 @@
 # gleaner
 
-The Discord courier for **Cyby**. It watches four channels on Blue Sky Harvest.
+The Discord courier for **Cyby**. It watches five channels on Blue Sky Harvest.
 
 ### #gleanings → Cyby's library
 | You post | Cyby gets |
@@ -24,6 +24,18 @@ or post a direct download link (up to 60 MB). It's passed through untouched, kee
 filename (made plain ASCII), and Cyby files it in `documents/readings`. Files too big for Discord
 can be dropped straight into Dropbox → Apps → cyby → readings.
 Cover and metadata files posted with a book (Calibre's `.opf`, `cover.jpg`) are left out quietly.
+
+### #sstacks → Cyby's sstacks folder
+A few chosen Substack writers. Post a Substack link (`name.substack.com`, a post, or
+`substack.com/@writer`) to subscribe. gleaner checks every 3 hours and sends each new **free**
+post as a clean EPUB; paid-only posts are skipped with a 🔒 note, podcasts and threads ignored.
+Only posts published after you subscribe, never a back catalogue.
+
+`!list` · `!unsubscribe name` · `!cap 3` (at most 3 a week) · `!cap` (this week so far) ·
+`!cap off` · `!check` (look now) · `!recent`. Over the cap, posts wait for next week, but never
+more than a week's worth: the oldest waiting is let go. State lives in `~/.gleaner/sstacks.json`.
+
+Try a publication without Discord: `.venv/bin/python gleaner.py --sstack https://name.substack.com ~/Desktop/test`
 
 ### #listenings → ctx.fm
 Post a music link (Bandcamp, YouTube and so on) and it is added to the ctx.fm queue.
@@ -54,6 +66,7 @@ CHANNEL=gleanings
 SCREENSAVER_CHANNEL=sleepy-screens
 LISTEN_CHANNEL=listenings
 BOOKS_CHANNEL=readings
+SSTACKS_CHANNEL=sstacks
 CTX_API_KEY=ctx_…
 MODE=local
 # CTX_BASE_URL=https://ctx.fm

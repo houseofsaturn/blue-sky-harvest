@@ -35,6 +35,7 @@ import logging
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -47,7 +48,7 @@ import trafilatura
 from ebooklib import epub
 from PIL import Image
 
-__version__ = "0.8.1"
+__version__ = "0.9.0"
 
 CONFIG_DIR = Path(os.environ.get("GLEANER_CONFIG_DIR", Path.home() / ".gleaner"))
 USER_AGENT = (
@@ -89,6 +90,7 @@ class Settings:
     screens_channel: str = "screensaver"
     listen_channel: str = "listening"
     books_channel: str = "readings"
+    sstacks_channel: str = "sstacks"
     ctx_api_key: str = ""
     ctx_base: str = "https://ctx.fm"
     mode: str = "local"                  # "local" or "api"
@@ -110,6 +112,7 @@ class Settings:
         s.screens_channel = env.get("SCREENSAVER_CHANNEL", s.screens_channel).lstrip("#")
         s.listen_channel = env.get("LISTEN_CHANNEL", s.listen_channel).lstrip("#")
         s.books_channel = env.get("BOOKS_CHANNEL", s.books_channel).lstrip("#")
+        s.sstacks_channel = env.get("SSTACKS_CHANNEL", s.sstacks_channel).lstrip("#")
         s.ctx_api_key = env.get("CTX_API_KEY", "")
         s.ctx_base = env.get("CTX_BASE_URL", s.ctx_base).rstrip("/")
         s.mode = env.get("MODE", s.mode).lower()
@@ -776,6 +779,227 @@ def glean_book_url(url: str, delivery: Delivery) -> Result:
 
 
 # --------------------------------------------------------------------------
+# sstacks: new free posts from a few chosen Substack publications
+# --------------------------------------------------------------------------
+
+SSTACKS_FOLDER = "sstacks"               # Dropbox subfolder; Cyby puts these in documents/sstacks
+SSTACKS_STATE = "sstacks.json"           # in ~/.gleaner: subscriptions, cap, what's been sent
+SSTACKS_CHECK_EVERY = 3 * 3600           # seconds between checks of every publication
+SSTACKS_TICK = 15 * 60                   # how often the loop wakes to see if a check is due
+SSTACKS_DEFAULT_CAP = 3                  # posts per 7 days
+SSTACKS_MAX_TRIES = 3                    # a post that fails this often is let go
+PAID_MARKERS = re.compile(r"(this post is for paid subscribers|keep reading with a \d+-day free trial|"
+                          r"subscribe to keep reading|this post is for paying subscribers|"
+                          r"upgrade to paid to read|paid subscribers only)", re.I)
+SUBSTACK_SKIP_HOSTS = ("substack.com", "www.substack.com", "open.substack.com")
+
+
+class SstacksError(GleanError):
+    pass
+
+
+def http_json(url: str):
+    body, ctype, _ = http_get(url, accept="application/json")
+    try:
+        return json.loads(body.decode("utf-8", "replace"))
+    except ValueError:
+        raise SstacksError("that didn't answer like a Substack publication")
+
+
+def substack_base(url: str) -> str:
+    """Any Substack link (publication, post, or substack.com/@writer profile) ->
+    the publication's address, e.g. https://kevinmunger.substack.com"""
+    url = url.strip().rstrip(").,;>]")
+    if "://" not in url:
+        url = "https://" + url
+    p = urllib.parse.urlparse(url)
+    host = p.netloc.lower().split(":")[0]
+    if host in SUBSTACK_SKIP_HOSTS:
+        m = re.match(r"/@([A-Za-z0-9_.-]+)", p.path) or re.match(r"/profile/\d+-([A-Za-z0-9_.-]+)", p.path)
+        if not m:
+            raise SstacksError("post a link to the publication (name.substack.com) or the writer's "
+                               "profile (substack.com/@name)")
+        handle = m.group(1)
+        try:
+            prof = http_json(f"https://substack.com/api/v1/user/{handle}/public_profile")
+            pubs = []
+            if isinstance(prof.get("primaryPublication"), dict):
+                pubs.append(prof["primaryPublication"])
+            for pu in prof.get("publicationUsers") or []:
+                if isinstance(pu, dict) and isinstance(pu.get("publication"), dict):
+                    pubs.append(pu["publication"])
+            for pub in pubs:
+                if pub.get("custom_domain") and not pub.get("custom_domain_optional"):
+                    return "https://" + pub["custom_domain"].lower()
+                if pub.get("subdomain"):
+                    return f"https://{pub['subdomain'].lower()}.substack.com"
+        except GleanError:
+            pass
+        base = f"https://{handle.lower()}.substack.com"     # most writers' handle is their subdomain
+        substack_posts(base, limit=1)
+        return base
+    return f"{p.scheme or 'https'}://{p.netloc.lower()}"
+
+
+def _post_from_api(d: dict, base: str) -> dict:
+    bylines = d.get("publishedBylines") or []
+    return {
+        "id": str(d.get("id") or d.get("slug")),
+        "title": clean_text(d.get("title") or "Untitled"),
+        "slug": d.get("slug") or "",
+        "url": d.get("canonical_url") or f"{base}/p/{d.get('slug')}",
+        "date": d.get("post_date") or "",
+        "audience": d.get("audience") or "everyone",
+        "type": d.get("type") or "newsletter",
+        "author": clean_text(bylines[0].get("name", "")) if bylines and isinstance(bylines[0], dict) else "",
+        "body_html": d.get("body_html") or "",
+    }
+
+
+def _posts_from_feed(body: bytes, base: str) -> tuple[str, list[dict]]:
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.fromstring(body)
+    except ET.ParseError:
+        raise SstacksError("couldn't read that publication's feed")
+    ns = {"content": "http://purl.org/rss/1.0/modules/content/", "dc": "http://purl.org/dc/elements/1.1/"}
+    chan = root.find("channel")
+    name = clean_text(chan.findtext("title", "")) if chan is not None else ""
+    posts = []
+    for it in root.iter("item"):
+        link = (it.findtext("link") or "").strip()
+        content = it.findtext("content:encoded", "", ns) or ""
+        tail = re.sub(r"<[^>]+>", " ", content[-1500:])
+        posts.append({
+            "id": (it.findtext("guid") or link).strip(),
+            "title": clean_text(it.findtext("title", "Untitled")),
+            "slug": link.rstrip("/").rsplit("/", 1)[-1],
+            "url": link,
+            "date": it.findtext("pubDate", ""),
+            "audience": "only_paid" if PAID_MARKERS.search(tail) else "everyone",
+            "type": "podcast" if it.find("enclosure") is not None and "audio" in (it.find("enclosure").get("type") or "") else "newsletter",
+            "author": clean_text(it.findtext("dc:creator", "", ns)),
+            "body_html": content,
+        })
+    return name, posts
+
+
+def substack_posts(base: str, limit: int = 12) -> list[dict]:
+    """Newest posts first. Substack's archive API, falling back to the RSS feed."""
+    try:
+        data = http_json(f"{base}/api/v1/archive?sort=new&limit={limit}")
+        if isinstance(data, list):
+            return [_post_from_api(d, base) for d in data if isinstance(d, dict)]
+    except GleanError:
+        pass
+    body, _, _ = http_get(f"{base}/feed", accept="application/rss+xml,application/xml,text/xml")
+    return _posts_from_feed(body, base)[1][:limit]
+
+
+def substack_name(base: str) -> str:
+    try:
+        body, _, _ = http_get(f"{base}/feed", accept="application/rss+xml,application/xml,text/xml")
+        name = _posts_from_feed(body, base)[0]
+        if name:
+            return name
+    except GleanError:
+        pass
+    return urllib.parse.urlparse(base).netloc.removesuffix(".substack.com")
+
+
+def is_paid(post: dict) -> bool:
+    if post.get("audience") not in (None, "", "everyone"):
+        return True
+    return bool(PAID_MARKERS.search(re.sub(r"<[^>]+>", " ", (post.get("body_html") or "")[-1500:])))
+
+
+def glean_sstack(base: str, pub_name: str, post: dict, delivery: Delivery) -> Result:
+    """One Substack post -> a clean EPUB in the sstacks folder."""
+    body_html = ""
+    if post.get("slug"):
+        try:
+            full = http_json(f"{base}/api/v1/posts/{post['slug']}")
+            if isinstance(full, dict):
+                if full.get("audience") not in (None, "", "everyone"):
+                    raise SstacksError("it's for paid subscribers")
+                body_html = full.get("body_html") or ""
+                post = {**post, **{k: v for k, v in _post_from_api(full, base).items() if v and k != "body_html"}}
+        except SstacksError:
+            raise
+        except GleanError:
+            pass
+    body_html = body_html or post.get("body_html") or ""
+    if body_html:
+        page = (f"<html><head><meta charset='utf-8'><title>{html.escape(post['title'])}</title></head>"
+                f"<body><article><h1>{html.escape(post['title'])}</h1>{body_html}</article></body></html>")
+        art = extract_article(page, post["url"])
+    else:                                 # no body from the API or feed: read the web page
+        page_bytes, _, final_url = http_get(post["url"], accept="text/html")
+        art = extract_article(decode_html(page_bytes), final_url)
+    art.title = post["title"]
+    art.author = post.get("author") or art.author
+    art.source = pub_name
+    art.url = post["url"]
+    art.date = post.get("date") or art.date
+    if is_paid({"body_html": art.html_body}):
+        raise SstacksError("it's for paid subscribers")
+    fetch_images(art)
+    stored = delivery.save(safe_filename(art.title, "epub"), build_epub(art), SSTACKS_FOLDER)
+    words = len(re.sub(r"<[^>]+>", " ", art.html_body).split())
+    return Result(art.title, "article", stored, f"{words:,} words, about {max(1, round(words / 230))} min")
+
+
+class Sstacks:
+    """Subscriptions and the weekly cap, kept in ~/.gleaner/sstacks.json."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.data = {"subs": {}, "cap": SSTACKS_DEFAULT_CAP, "sent": [], "queue": [], "last_check": 0}
+        if path.exists():
+            try:
+                self.data.update(json.loads(path.read_text()))
+            except ValueError:
+                log.warning("couldn't read %s; starting afresh", path)
+
+    def save(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = self.path.with_suffix(".part")
+        tmp.write_text(json.dumps(self.data, indent=1))
+        tmp.replace(self.path)
+
+    @property
+    def subs(self) -> dict:
+        return self.data["subs"]
+
+    @property
+    def cap(self) -> int | None:
+        return self.data.get("cap")
+
+    def sent_this_week(self, now: float) -> int:
+        self.data["sent"] = [t for t in self.data["sent"] if now - t < 7 * 86400]
+        return len(self.data["sent"])
+
+    def find(self, query: str) -> str | None:
+        q = query.strip().lower()
+        if q.isdigit() and 0 < int(q) <= len(self.subs):
+            return list(self.subs)[int(q) - 1]
+        for base, s in self.subs.items():
+            if q in (s.get("name", "").lower(), base.lower()) or q in base.lower() or q in s.get("name", "").lower():
+                return base
+        return None
+
+
+SSTACKS_HELP = """**gleaner** brings new *free* posts from a few chosen Substack writers to Cyby.
+• post a **Substack link** (name.substack.com, or substack.com/@writer) → subscribe
+• `!list` who you're subscribed to · `!unsubscribe name` stop one
+• `!cap 3` at most 3 posts a week · `!cap` see this week's count · `!cap off` no limit
+• `!check` look for new posts now (gleaner also checks every few hours)
+Only posts published after you subscribe. Paid-only posts are skipped with a note.
+Over the cap, posts wait for next week, but never more than a week's worth.
+They arrive on Cyby in **documents/sstacks**."""
+
+
+# --------------------------------------------------------------------------
 # sleep screens
 # --------------------------------------------------------------------------
 
@@ -1021,6 +1245,11 @@ class Gleaner(discord.Client):
         self.ctx = Ctx(settings)
         self.in_flight: set[int] = set()        # message ids being worked on right now
         self.catchup_lock = asyncio.Lock()
+        self.sstacks = Sstacks(CONFIG_DIR / SSTACKS_STATE)
+        self.sstacks_lock = asyncio.Lock()
+
+    async def setup_hook(self):
+        asyncio.create_task(self.sstacks_loop())
 
     async def on_ready(self):
         log.info("gleaner %s logged in as %s; watching %s; delivering to %s",
@@ -1033,7 +1262,8 @@ class Gleaner(discord.Client):
         await self.catch_up()
 
     def channel_names(self) -> tuple:
-        names = (self.settings.channel_name, self.settings.screens_channel, self.settings.books_channel)
+        names = (self.settings.channel_name, self.settings.screens_channel, self.settings.books_channel,
+                 self.settings.sstacks_channel)
         return names + (self.settings.listen_channel,) if self.ctx.ready else names
 
     def kind_of(self, channel) -> str | None:
@@ -1044,6 +1274,8 @@ class Gleaner(discord.Client):
             return "listen"
         if name == self.settings.books_channel:
             return "books"
+        if name == self.settings.sstacks_channel:
+            return "sstacks"
         if name == self.settings.channel_name:
             return "gleanings"
         return None
@@ -1111,6 +1343,9 @@ class Gleaner(discord.Client):
         content = (message.content or "").strip()
         command = content.lower()
         kind = self.kind_of(message.channel)
+        if kind == "sstacks" and command != "!ping":
+            await self.handle_sstacks(message, content, command, catching_up)
+            return
         if command in ("!help", "!gleaner"):
             text = {"screens": SCREENS_HELP, "listen": LISTEN_HELP, "books": BOOKS_HELP}.get(kind, HELP)
             await message.reply(text, mention_author=False)
@@ -1148,6 +1383,185 @@ class Gleaner(discord.Client):
             await self.run_jobs(message, jobs, catching_up)
         finally:
             self.in_flight.discard(message.id)
+
+    # ---- #sstacks -------------------------------------------------------
+
+    async def handle_sstacks(self, message, content: str, command: str, catching_up: bool):
+        st = self.sstacks
+        reply = lambda text: message.reply(text[:1990], mention_author=False, suppress_embeds=True)
+        if command in ("!help", "!gleaner"):
+            await reply(SSTACKS_HELP)
+        elif command == "!list":
+            if not st.subs:
+                await reply("No subscriptions yet. Post a Substack link to add one.")
+            else:
+                rows = [f"{i}. **{s['name']}** <{base}>" for i, (base, s) in enumerate(st.subs.items(), 1)]
+                await reply("**Subscribed**\n" + "\n".join(rows) + "\n" + self.cap_line())
+        elif command.startswith(("!unsubscribe", "!unsub")):
+            query = content.split(maxsplit=1)[1] if len(content.split()) > 1 else ""
+            async with self.sstacks_lock:
+                base = st.find(query) if query else None
+                if not base:
+                    await reply("Which one? `!unsubscribe name` (see `!list`).")
+                    return
+                name = st.subs.pop(base)["name"]
+                st.data["queue"] = [q for q in st.data["queue"] if q["base"] != base]
+                st.save()
+            await reply(f"👋 Unsubscribed from **{name}**.")
+        elif command.startswith("!cap"):
+            arg = command[4:].strip()
+            if arg:
+                if arg in ("off", "none", "0"):
+                    cap = None
+                elif arg.isdigit():
+                    cap = int(arg)
+                else:
+                    await reply("Use `!cap 3`, `!cap off`, or just `!cap` to see it.")
+                    return
+                async with self.sstacks_lock:
+                    st.data["cap"] = cap
+                    dropped = self.trim_queue()
+                    st.save()
+                extra = "".join(f"\n⏭ Let go of **{t}** (more than a week's worth waiting)" for t in dropped)
+                await reply(("📏 No weekly limit now." if cap is None else f"📏 Cap set: at most {cap} a week.") + extra)
+            else:
+                await reply(self.cap_line())
+        elif command == "!check":
+            await safe_react(message, "⏳")
+            notes = await self.check_sstacks(manual=True)
+            await safe_unreact(message, "⏳")
+            await reply("\n".join(notes) if notes else "Nothing new. " + self.cap_line())
+        elif command == "!recent":
+            names = await asyncio.to_thread(self.delivery.recent, 8, SSTACKS_FOLDER)
+            await reply("**Recent sstacks**\n" + ("\n".join(f"• {n}" for n in names) or "Nothing delivered yet."))
+        elif content.startswith("!"):
+            return
+        else:
+            urls = [u for kind, u in message_jobs(message, "sstacks")]
+            if urls and message.id not in self.in_flight:
+                self.in_flight.add(message.id)
+                try:
+                    await self.subscribe(message, urls, catching_up)
+                finally:
+                    self.in_flight.discard(message.id)
+
+    def cap_line(self) -> str:
+        st = self.sstacks
+        sent, waiting = st.sent_this_week(time.time()), len(st.data["queue"])
+        cap = "no weekly limit" if st.cap is None else f"cap {st.cap} a week"
+        return f"_{sent} sent in the last 7 days · {waiting} waiting · {cap}_"
+
+    def trim_queue(self) -> list[str]:
+        """never more than a week's worth waiting: drop the oldest"""
+        q, cap, dropped = self.sstacks.data["queue"], self.sstacks.cap, []
+        while cap is not None and len(q) > cap:
+            dropped.append(q.pop(0)["post"]["title"])
+        return dropped
+
+    async def subscribe(self, message, urls: list[str], catching_up: bool):
+        st = self.sstacks
+        await safe_react(message, "⏳")
+        lines, failed = (["_Picked up after being offline._"] if catching_up else []), 0
+        for url in dict.fromkeys(urls):
+            try:
+                base = await asyncio.to_thread(substack_base, url)
+                if base in st.subs:
+                    lines.append(f"Already subscribed to **{st.subs[base]['name']}**.")
+                    continue
+                posts = await asyncio.to_thread(substack_posts, base)
+                name = await asyncio.to_thread(substack_name, base)
+                async with self.sstacks_lock:
+                    st.subs[base] = {"name": name, "added": time.time(), "seen": [p["id"] for p in posts]}
+                    st.save()
+                letters = [p for p in posts if p.get("type") in (None, "", "newsletter")]
+                latest = f" (latest so far: *{letters[0]['title']}*)" if letters else ""
+                lines.append(f"📬 Subscribed to **{name}** <{base}>. New free posts from now on{latest}.")
+                log.info("subscribed to %s (%s)", name, base)
+            except GleanError as e:
+                failed += 1
+                lines.append(f"❌ <{url}>: {e}")
+        if failed < len(urls):
+            lines.append(self.cap_line())
+        await safe_unreact(message, "⏳")
+        await safe_react(message, "✅" if failed == 0 else ("⚠️" if failed < len(urls) else "❌"))
+        await message.reply("\n".join(lines)[:1990], mention_author=False, suppress_embeds=True)
+
+    async def check_sstacks(self, manual: bool = False) -> list[str]:
+        """Look for new posts, queue the free ones, deliver what the cap allows.
+        Returns the notes to post in the channel."""
+        st, notes, delivered = self.sstacks, [], 0
+        async with self.sstacks_lock:
+            for base, sub in list(st.subs.items()):
+                try:
+                    posts = await asyncio.to_thread(substack_posts, base)
+                except GleanError as e:
+                    log.warning("couldn't check %s: %s", base, e)
+                    if manual:
+                        notes.append(f"⚠️ Couldn't check **{sub['name']}**: {e}")
+                    continue
+                seen = set(sub.get("seen", []))
+                for p in reversed(posts):                      # oldest first
+                    if p["id"] in seen:
+                        continue
+                    sub.setdefault("seen", []).append(p["id"])
+                    if p.get("type") not in (None, "", "newsletter"):
+                        continue                               # podcasts, threads
+                    if is_paid(p):
+                        notes.append(f"🔒 Skipped a paid post from **{sub['name']}**: {p['title']}")
+                        continue
+                    st.data["queue"].append({"base": base, "tries": 0, "post": {
+                        k: p.get(k, "") for k in ("id", "title", "slug", "url", "date", "author", "audience", "type")}})
+                sub["seen"] = sub.get("seen", [])[-300:]
+            q = st.data["queue"]
+            while q and (st.cap is None or st.sent_this_week(time.time()) < st.cap):
+                item = q[0]
+                sub = st.subs.get(item["base"])
+                if sub is None:
+                    q.pop(0)
+                    continue
+                try:
+                    res = await asyncio.to_thread(glean_sstack, item["base"], sub["name"], item["post"], self.delivery)
+                    q.pop(0)
+                    st.data["sent"].append(time.time())
+                    delivered += 1
+                    notes.append(f"📰 **{res.title}** · {sub['name']} ({res.note})")
+                    log.info("sstacks delivered %s -> %s", item["post"]["url"], res.stored_as)
+                except SstacksError:
+                    q.pop(0)
+                    notes.append(f"🔒 Skipped a paid post from **{sub['name']}**: {item['post']['title']}")
+                except Exception as e:
+                    item["tries"] = item.get("tries", 0) + 1
+                    log.warning("sstacks couldn't fetch %s (try %d): %s", item["post"]["url"], item["tries"], e)
+                    if item["tries"] >= SSTACKS_MAX_TRIES:
+                        q.pop(0)
+                        notes.append(f"❌ Couldn't fetch **{item['post']['title']}** ({e}); letting it go")
+                    else:
+                        break                                  # try again at the next check
+            notes += [f"⏭ Let go of **{t}** (more than a week's worth waiting)" for t in self.trim_queue()]
+            if q and st.cap is not None and st.sent_this_week(time.time()) >= st.cap:
+                notes.append(f"_{len(q)} waiting for next week (cap {st.cap})._")
+            st.data["last_check"] = time.time()
+            st.save()
+        if delivered:
+            notes.append("_On its way to Cyby's sstacks, it'll arrive on the next sync._")
+        return notes
+
+    async def sstacks_loop(self):
+        await self.wait_until_ready()
+        await asyncio.sleep(30)
+        while not self.is_closed():
+            try:
+                st = self.sstacks
+                if st.subs and time.time() - st.data.get("last_check", 0) >= SSTACKS_CHECK_EVERY:
+                    notes = await self.check_sstacks()
+                    if notes:
+                        for c in self.watched_channels():
+                            if c.name == self.settings.sstacks_channel:
+                                await c.send("\n".join(notes)[:1990], suppress_embeds=True)
+                                break
+            except Exception:
+                log.exception("sstacks check failed")
+            await asyncio.sleep(SSTACKS_TICK)
 
     async def run_jobs(self, message: discord.Message, jobs: list, catching_up: bool):
         await safe_react(message, "⏳")
@@ -1228,6 +1642,8 @@ def message_jobs(message: discord.Message, kind: str | None = "gleanings") -> li
     urls = (u.rstrip(").,;:!?>]'\"") for u in URL_RE.findall(content))
     if kind == "listen":
         return [("listen", u) for u in dict.fromkeys(urls)]
+    if kind == "sstacks":
+        return [("subscribe", u) for u in dict.fromkeys(urls)]
     if kind == "books":
         for url in dict.fromkeys(urls):
             jobs.append(("book_url", url))
@@ -1290,12 +1706,31 @@ def run_test(args: list[str]) -> None:
     print(f"{res.kind}: {res.title} -> {out / res.stored_as}" + (f" [{res.note}]" if res.note else ""))
 
 
+def run_sstack_test(args: list[str]) -> None:
+    """Try a Substack without Discord:  python gleaner.py --sstack <substack link> [out_dir]
+    Shows the latest posts and converts the newest free one."""
+    out = Path(args[1]) if len(args) > 1 else Path.cwd() / "gleaner-test"
+    base = substack_base(args[0])
+    name = substack_name(base)
+    posts = substack_posts(base)
+    print(f"{name}  <{base}>")
+    for p in posts[:6]:
+        print(f"  {'paid' if is_paid(p) else 'free'}  {p.get('type')}  {p['date'][:10]}  {p['title']}")
+    free = [p for p in posts if not is_paid(p) and p.get("type") in (None, "", "newsletter")]
+    if free:
+        res = glean_sstack(base, name, free[0], Delivery(Settings(discord_token="test", output_dir=out)))
+        print(f"converted: {res.title} -> {out / res.stored_as} [{res.note}]")
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("discord").setLevel(logging.WARNING)
     logging.getLogger("trafilatura").setLevel(logging.ERROR)
     if len(sys.argv) > 1 and sys.argv[1] == "--test":
         run_test(sys.argv[2:])
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == "--sstack":
+        run_sstack_test(sys.argv[2:])
         return
     settings = Settings.load()
     try:
