@@ -1,0 +1,11 @@
+# secrets live in ~/.gleaner/ and must never be committed
+.gleaner/
+*.env
+.env*
+# local clutter
+.venv/
+__pycache__/
+*.pyc
+*.part
+*.zip
+.DS_Store

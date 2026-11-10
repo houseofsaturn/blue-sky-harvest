@@ -1,0 +1,5 @@
+discord.py>=2.3,<3
+trafilatura>=1.12
+lxml>=5
+EbookLib>=0.18
+Pillow>=10
