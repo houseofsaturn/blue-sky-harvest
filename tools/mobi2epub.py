@@ -111,7 +111,7 @@ def main():
             names[t] = contents[min(near, key=lambda p: int(p[7:]))]
 
     clean(body)
-    chapters, cur = [("front", "Title page", [])], None
+    chapters = [("front", "Title page", [])]
     start_ids = dict(starts)
     for child in list(body):
         if child.tag == "a" and child.get("id") in start_ids:
@@ -165,8 +165,7 @@ def main():
         items.append((cid, label, c))
 
     # table of contents, grouped into parts if asked
-    by_label = {lab: c for _, lab, c in items[1:]}
-    toc, used = [], set()
+    toc = []
     part_of = {name: p for p, names_ in parts.items() for name in names_}
     open_part = None
     for cid, lab, c in items[1:]:
