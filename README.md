@@ -14,7 +14,7 @@ no RSS and no automatic sources.
                 EPUBs, text         files passed through
  #sleepy-screens  images      ──▶  greyscale 758×1024 PNG,   ──▶  screensavers/*.png    ──▶  /mnt/us/screensavers
                                     5 mm margin, dithered                                      (random sleep screen)
- #books         ebook files   ──▶  passed through untouched  ──▶  books/*                ──▶  documents/books
+ #readings      ebook files   ──▶  passed through untouched  ──▶  books/*                ──▶  documents/books
                 or links
  #listenings    music links   ──▶  ctx.fm API: add to queue
                                     (or collection)
