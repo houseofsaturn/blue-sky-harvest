@@ -47,7 +47,7 @@ import trafilatura
 from ebooklib import epub
 from PIL import Image
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 CONFIG_DIR = Path(os.environ.get("GLEANER_CONFIG_DIR", Path.home() / ".gleaner"))
 USER_AGENT = (
@@ -88,6 +88,7 @@ class Settings:
     channel_name: str = "gleanings"
     screens_channel: str = "screensaver"
     listen_channel: str = "listening"
+    books_channel: str = "books"
     ctx_api_key: str = ""
     ctx_base: str = "https://ctx.fm"
     mode: str = "local"                  # "local" or "api"
@@ -108,6 +109,7 @@ class Settings:
         s.channel_name = env.get("CHANNEL", s.channel_name).lstrip("#")
         s.screens_channel = env.get("SCREENSAVER_CHANNEL", s.screens_channel).lstrip("#")
         s.listen_channel = env.get("LISTEN_CHANNEL", s.listen_channel).lstrip("#")
+        s.books_channel = env.get("BOOKS_CHANNEL", s.books_channel).lstrip("#")
         s.ctx_api_key = env.get("CTX_API_KEY", "")
         s.ctx_base = env.get("CTX_BASE_URL", s.ctx_base).rstrip("/")
         s.mode = env.get("MODE", s.mode).lower()
@@ -698,6 +700,76 @@ def glean_text(text: str, delivery: Delivery) -> Result:
 
 
 # --------------------------------------------------------------------------
+# books: ebook files passed through untouched to their own folder
+# --------------------------------------------------------------------------
+
+BOOKS_FOLDER = "books"                   # Dropbox subfolder; Cyby puts these in documents/books
+BOOK_EXTS = (".epub", ".kepub", ".pdf", ".mobi", ".azw", ".azw3", ".fb2", ".djvu", ".djv",
+             ".cbz", ".cbr", ".cb7", ".txt", ".rtf", ".docx", ".chm", ".htmlz")
+BOOK_TYPES = {"application/epub+zip": ".epub", "application/pdf": ".pdf",
+              "application/x-mobipocket-ebook": ".mobi", "application/vnd.amazon.ebook": ".azw",
+              "application/x-fictionbook+xml": ".fb2", "image/vnd.djvu": ".djvu",
+              "application/vnd.comicbook+zip": ".cbz", "application/x-cbz": ".cbz"}
+
+
+def book_filename(filename: str) -> str:
+    """The book's own filename, made safe for Kindle storage and KOReader's Dropbox
+    download: plain ASCII, no date prefix (books aren't news)."""
+    import unicodedata
+    p = Path(filename)
+    ext = "".join(p.suffixes[-1:]).lower()
+    stem = unicodedata.normalize("NFKD", p.stem.translate(ASCII_SWAPS)).encode("ascii", "ignore").decode("ascii")
+    stem = re.sub(r"[\\/:*?\"<>|\x00-\x1f]", "", stem)
+    stem = re.sub(r"\s+", " ", stem.replace("_", " ")).strip(" .") or "Book"
+    if len(stem) > 120:
+        stem = stem[:120].rsplit(" ", 1)[0].rstrip(" ,;:-")
+    return f"{stem}{ext}"
+
+
+def book_title(stored: str) -> str:
+    return Path(stored).stem
+
+
+def check_book(name: str, data: bytes) -> str:
+    """the file's extension if it's an ebook Cyby can open, else raise"""
+    ext = Path(name).suffix.lower()
+    if ext not in BOOK_EXTS:
+        raise GleanError(f"{ext or 'that'} isn't an ebook format KOReader opens "
+                         "(EPUB, PDF, MOBI, AZW3, FB2, DjVu, CBZ, TXT…)")
+    if not data:
+        raise GleanError("the file is empty")
+    if ext == ".pdf" and not data[:1024].lstrip().startswith(b"%PDF"):
+        raise GleanError("that doesn't look like a real PDF")
+    if ext in (".epub", ".kepub", ".cbz", ".htmlz") and data[:2] != b"PK":
+        raise GleanError(f"that doesn't look like a real {ext[1:].upper()} file")
+    return ext
+
+
+def glean_book(filename: str, data: bytes, delivery: Delivery) -> Result:
+    name = book_filename(filename)
+    check_book(name, data)
+    stored = delivery.save(name, data, BOOKS_FOLDER)
+    return Result(book_title(stored), "book", stored, f"{len(data) / 1e6:.1f} MB")
+
+
+def glean_book_url(url: str, delivery: Delivery) -> Result:
+    url = url.rstrip(").,;>]")
+    body, ctype, final_url = http_get(url, accept="application/epub+zip,application/pdf,*/*;q=0.8")
+    name = Path(urllib.parse.unquote(urllib.parse.urlparse(final_url).path)).name
+    if Path(name).suffix.lower() not in BOOK_EXTS:
+        ext = BOOK_TYPES.get(ctype)
+        if ext is None and body[:5] == b"%PDF-":
+            ext = ".pdf"
+        if ext is None:
+            if ctype.startswith("text/html") or "html" in ctype:
+                raise GleanError("that's a web page, not a book file. Post a direct download link "
+                                 "(articles go in #gleanings)")
+            raise GleanError(f"couldn't tell what kind of file that is ({ctype or 'unknown type'})")
+        name = (Path(name).stem or "Book") + ext
+    return glean_book(name, body, delivery)
+
+
+# --------------------------------------------------------------------------
 # sleep screens
 # --------------------------------------------------------------------------
 
@@ -920,6 +992,15 @@ LISTEN_HELP = """**gleaner** passes music to ctx.fm from this channel. Post:
 Commands: `!ctx` check the ctx.fm connection · `!ping` · `!help`"""
 
 
+BOOKS_HELP = """**gleaner** carries ebooks to Cyby from this channel. Post:
+• an attached **ebook** (EPUB, PDF, MOBI, AZW3, FB2, DjVu, CBZ, TXT…) → passed through untouched
+• a **direct download link** to one → fetched (up to 60 MB) and passed through
+Cyby files them in **documents/books** on its next sync.
+
+Too big for Discord? Post a link instead, or drop the file into Dropbox → Apps → cyby → books.
+Commands: `!recent` latest books · `!ping` · `!help`"""
+
+
 def wants_centre(text: str) -> bool:
     return bool(re.search(r"\bcent(re|er|red|ered)\b", text or "", re.I))
 
@@ -946,7 +1027,7 @@ class Gleaner(discord.Client):
         await self.catch_up()
 
     def channel_names(self) -> tuple:
-        names = (self.settings.channel_name, self.settings.screens_channel)
+        names = (self.settings.channel_name, self.settings.screens_channel, self.settings.books_channel)
         return names + (self.settings.listen_channel,) if self.ctx.ready else names
 
     def kind_of(self, channel) -> str | None:
@@ -955,6 +1036,8 @@ class Gleaner(discord.Client):
             return "screens"
         if name == self.settings.listen_channel and self.ctx.ready:
             return "listen"
+        if name == self.settings.books_channel:
+            return "books"
         if name == self.settings.channel_name:
             return "gleanings"
         return None
@@ -1023,7 +1106,7 @@ class Gleaner(discord.Client):
         command = content.lower()
         kind = self.kind_of(message.channel)
         if command in ("!help", "!gleaner"):
-            text = {"screens": SCREENS_HELP, "listen": LISTEN_HELP}.get(kind, HELP)
+            text = {"screens": SCREENS_HELP, "listen": LISTEN_HELP, "books": BOOKS_HELP}.get(kind, HELP)
             await message.reply(text, mention_author=False)
             return
         if command == "!ctx":
@@ -1042,9 +1125,11 @@ class Gleaner(discord.Client):
             await message.reply(f"🌾 awake. Delivering to `{self.delivery.describe()}`", mention_author=False)
             return
         if command == "!recent":
-            names = await asyncio.to_thread(self.delivery.recent)
+            folder = BOOKS_FOLDER if kind == "books" else ""
+            names = await asyncio.to_thread(self.delivery.recent, 8, folder)
             text = "\n".join(f"• {n}" for n in names) if names else "Nothing delivered yet."
-            await message.reply(f"**Recent gleanings**\n{text}", mention_author=False)
+            label = "Recent books" if kind == "books" else "Recent gleanings"
+            await message.reply(f"**{label}**\n{text}", mention_author=False)
             return
         if content.startswith("!"):
             return
@@ -1078,6 +1163,11 @@ class Gleaner(discord.Client):
                                                   item.filename, centred, self.delivery)
                 elif kind == "image_url":
                     res = await asyncio.to_thread(glean_screensaver_url, message.id, index, item, centred, self.delivery)
+                elif kind == "book":
+                    data = await item.read()
+                    res = await asyncio.to_thread(glean_book, item.filename, data, self.delivery)
+                elif kind == "book_url":
+                    res = await asyncio.to_thread(glean_book_url, item, self.delivery)
                 elif kind == "url":
                     res = await asyncio.to_thread(glean_url, item, self.delivery)
                 elif kind == "attachment":
@@ -1085,14 +1175,15 @@ class Gleaner(discord.Client):
                     res = await asyncio.to_thread(glean_attachment, item.filename, data, self.delivery)
                 else:
                     res = await asyncio.to_thread(glean_text, item, self.delivery)
-                icon = {"article": "📰", "pdf": "📄", "epub": "📘", "note": "📝", "screen": "🖼"}[res.kind]
+                icon = {"article": "📰", "pdf": "📄", "epub": "📘", "note": "📝", "screen": "🖼", "book": "📚"}[res.kind]
                 extra = f" ({res.note})" if res.note else ""
                 lines.append(f"{icon} **{res.title}**{extra}")
                 log.info("delivered %s -> %s", getattr(item, "filename", item), res.stored_as)
             except GleanError as e:
                 failed += 1
-                label = item if kind in ("url", "image_url", "listen") else getattr(item, "filename", "that text")
-                lines.append(f"❌ <{label}>: {e}" if kind in ("url", "image_url", "listen") else f"❌ {label}: {e}")
+                linky = kind in ("url", "image_url", "listen", "book_url")
+                label = item if linky else getattr(item, "filename", "that text")
+                lines.append(f"❌ <{label}>: {e}" if linky else f"❌ {label}: {e}")
             except Exception as e:
                 failed += 1
                 log.exception("unexpected failure on %r", item)
@@ -1104,6 +1195,8 @@ class Gleaner(discord.Client):
             if self.is_screens(message.channel):
                 n = await asyncio.to_thread(self.delivery.count, SCREENS_FOLDER)
                 lines.append(f"_Added to Cyby's sleep screens ({n} in rotation)._")
+            elif self.kind_of(message.channel) == "books":
+                lines.append("_On its way to Cyby's books, it'll arrive on the next sync._")
             else:
                 lines.append("_Ready for Cyby, it'll collect this on its next sync._")
         await message.reply("\n".join(lines)[:1990], mention_author=False, suppress_embeds=True)
@@ -1124,6 +1217,12 @@ def message_jobs(message: discord.Message, kind: str | None = "gleanings") -> li
     urls = (u.rstrip(").,;:!?>]'\"") for u in URL_RE.findall(content))
     if kind == "listen":
         return [("listen", u) for u in dict.fromkeys(urls)]
+    if kind == "books":
+        for url in dict.fromkeys(urls):
+            jobs.append(("book_url", url))
+        for att in message.attachments:
+            jobs.append(("book", att))
+        return jobs
     if kind == "screens":
         for url in dict.fromkeys(urls):
             jobs.append(("image_url", url))

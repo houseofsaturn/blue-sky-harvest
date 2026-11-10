@@ -13,7 +13,10 @@ New files are downloaded once; delete one after reading and it stays gone.
 
 It also mirrors gleaner's screensavers/ folder into /mnt/us/screensavers (images
 whose Discord posts were deleted are removed), and can point KOReader's sleep
-screen at it: Tools -> Gleanings -> Use #screensaver images as sleep screen.
+screen at it: Tools -> Gleanings -> Use #sleepy-screens images as sleep screen.
+
+Ebooks from gleaner's books/ folder go into documents/books (beside the
+gleanings folder), delivered once like everything else.
 
 Files are fetched by their Dropbox id, so titles with curly quotes or
 accents work.
@@ -40,6 +43,7 @@ local AUTO_SETTING = "gleanings_auto_sync"
 local LAST_SETTING = "gleanings_last_sync"
 local SEEN_SETTING = "gleanings_delivered"   -- Dropbox ids already brought down
 local SCREENS_FOLDER = "screensavers"
+local BOOKS_FOLDER = "books"
 local MIN_GAP = 90          -- seconds between automatic syncs
 local AUTO_DELAY = 4        -- give Wi-Fi a moment to settle before syncing
 
@@ -85,7 +89,7 @@ function Gleanings:addToMainMenu(menu_items)
                 end,
             },
             {
-                text = _("Use #screensaver images as sleep screen"),
+                text = _("Use #sleepy-screens images as sleep screen"),
                 checked_func = function() return usingScreens() end,
                 callback = function() self:toggleScreens() end,
                 separator = true,
@@ -296,24 +300,47 @@ function Gleanings:doSync(silent)
     -- Remember what has been delivered, so articles deleted from the device
     -- after reading don't come back on the next sync.
     local seen = G_reader_settings:readSetting(SEEN_SETTING) or {}
-    local got, failed, names = 0, 0, {}
     local still_in_dropbox = {}
-    for _, f in ipairs(files) do
-        still_in_dropbox[f.id] = true
-        local local_path = dest .. "/" .. safeLocalName(f.name)
-        local local_size = lfs.attributes(local_path, "size")
-        if local_size == f.size then
-            seen[f.id] = true                -- already here (e.g. from an earlier manual sync)
-        elseif not seen[f.id] then
-            if download(token, f, local_path) then
-                got = got + 1
-                seen[f.id] = true
-                table.insert(names, f.name)
-            else
-                failed = failed + 1
+    local function deliver(list, dir, names)
+        local n, bad = 0, 0
+        for _, f in ipairs(list) do
+            still_in_dropbox[f.id] = true
+            local local_path = dir .. "/" .. safeLocalName(f.name)
+            local local_size = lfs.attributes(local_path, "size")
+            if local_size == f.size then
+                seen[f.id] = true            -- already here (e.g. from an earlier manual sync)
+            elseif not seen[f.id] then
+                if download(token, f, local_path) then
+                    n = n + 1
+                    seen[f.id] = true
+                    table.insert(names, f.name)
+                else
+                    bad = bad + 1
+                end
             end
         end
+        return n, bad
     end
+    local names = {}
+    local got, failed = deliver(files, dest, names)
+
+    -- Ebooks: Dropbox books/ -> documents/books, next to the gleanings folder.
+    local b_got = 0
+    local src = server.sync_source_folder
+    if src == nil or src == "/" then src = "" end
+    local book_files = listFiles(token, src .. "/" .. BOOKS_FOLDER)
+    if book_files then
+        local bdir = Gleanings.booksDir()
+        if #book_files > 0 and lfs.attributes(bdir, "mode") ~= "directory" then
+            lfs.mkdir(bdir)
+        end
+        local b_failed
+        b_got, b_failed = deliver(book_files, bdir, names)
+        failed = failed + b_failed
+    else
+        for id in pairs(seen) do still_in_dropbox[id] = still_in_dropbox[id] or "keep" end
+    end
+
     for id in pairs(seen) do                 -- forget files cleared out of Dropbox
         if not still_in_dropbox[id] then seen[id] = nil end
     end
@@ -324,7 +351,7 @@ function Gleanings:doSync(silent)
 
     G_reader_settings:saveSetting(LAST_SETTING, os.date("%d %b %H:%M"))
 
-    if got > 0 then
+    if got + b_got > 0 then
         local FileManager = require("apps/filemanager/filemanager")
         if FileManager.instance and FileManager.instance.file_chooser then
             FileManager.instance.file_chooser:refreshPath()
@@ -335,6 +362,7 @@ function Gleanings:doSync(silent)
     if silent then
         local bits = {}
         if got > 0 then table.insert(bits, plural(got, _("1 new gleaning"), _("%d new gleanings"))) end
+        if b_got > 0 then table.insert(bits, plural(b_got, _("1 new book"), _("%d new books"))) end
         if s_got > 0 then table.insert(bits, plural(s_got, _("1 new sleep screen"), _("%d new sleep screens"))) end
         if #bits > 0 then UIManager:show(Notification:new{ text = table.concat(bits, ", ") }) end
         if failed > 0 then logger.warn("Gleanings:", failed, "file(s) failed") end
@@ -342,11 +370,14 @@ function Gleanings:doSync(silent)
     end
 
     local text
-    if got == 0 and s_got == 0 and s_gone == 0 and failed == 0 then
+    if got == 0 and b_got == 0 and s_got == 0 and s_gone == 0 and failed == 0 then
         text = _("Gleanings: nothing new.")
     else
         text = string.format(_("Gleanings: %d new."), got)
-        if got > 0 and got <= 5 then
+        if b_got > 0 then
+            text = text .. " " .. plural(b_got, _("1 new book."), _("%d new books."))
+        end
+        if #names > 0 and #names <= 5 then
             text = text .. "\n\n" .. table.concat(names, "\n")
         end
         if s_got > 0 or s_gone > 0 then
@@ -356,7 +387,15 @@ function Gleanings:doSync(silent)
             text = text .. "\n\n" .. string.format(_("%d couldn't be downloaded; try again later."), failed)
         end
     end
-    report(text, got == 0 and s_got == 0 and s_gone == 0 and failed == 0 and 2 or nil)
+    report(text, got == 0 and b_got == 0 and s_got == 0 and s_gone == 0 and failed == 0 and 2 or nil)
+end
+
+-- Books sit beside the gleanings folder: /mnt/us/documents/books on a Kindle.
+function Gleanings.booksDir()
+    local server = findServer()
+    local dest = server and server.sync_dest_folder or ""
+    local parent = dest:match("^(.*)/[^/]+/?$") or DataStorage:getDataDir()
+    return parent .. "/" .. BOOKS_FOLDER
 end
 
 -- ---------------------------------------------------------------- sleep screens
@@ -424,7 +463,7 @@ function Gleanings:toggleScreens()
     end
     UIManager:show(InfoMessage:new{
         text = n > 0 and string.format(_("Cyby will show one of %d images each time it sleeps."), n)
-            or _("Done. Post images in #screensaver, then sync, and they'll appear when Cyby sleeps."),
+            or _("Done. Post images in #sleepy-screens, then sync, and they'll appear when Cyby sleeps."),
     })
 end
 

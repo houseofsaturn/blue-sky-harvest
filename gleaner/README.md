@@ -1,6 +1,6 @@
 # gleaner
 
-The Discord courier for **Cyby**. It watches three channels on Blue Sky Harvest.
+The Discord courier for **Cyby**. It watches four channels on Blue Sky Harvest.
 
 ### #gleanings → Cyby's library
 | You post | Cyby gets |
@@ -17,6 +17,12 @@ Short chat lines are ignored.
 Post images (attached or linked). Each becomes a 758×1024 greyscale PNG: never cropped or
 enlarged, at least a 5 mm white margin, usually placed towards a corner (one in five centred).
 Put the word `centre` in the message to centre it. Delete the post to delete the sleep screen.
+
+### #books → Cyby's books folder
+Attach an ebook (EPUB, PDF, MOBI, AZW3, FB2, DjVu, CBZ, TXT and other formats KOReader opens),
+or post a direct download link (up to 60 MB). It's passed through untouched, keeping its own
+filename (made plain ASCII), and Cyby files it in `documents/books`. Files too big for Discord
+can be dropped straight into Dropbox → Apps → cyby → books.
 
 ### #listenings → ctx.fm
 Post a music link (Bandcamp, YouTube and so on) and it is added to the ctx.fm queue.
@@ -46,6 +52,7 @@ DISCORD_TOKEN=…
 CHANNEL=gleanings
 SCREENSAVER_CHANNEL=sleepy-screens
 LISTEN_CHANNEL=listenings
+BOOKS_CHANNEL=books
 CTX_API_KEY=ctx_…
 MODE=local
 # CTX_BASE_URL=https://ctx.fm
