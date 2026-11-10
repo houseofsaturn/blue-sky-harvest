@@ -856,6 +856,15 @@ def _post_from_api(d: dict, base: str) -> dict:
     }
 
 
+def rss_date(text: str) -> str:
+    """'Fri, 09 Oct 2026 10:00:00 GMT' -> '2026-10-09T10:00:00+00:00'"""
+    from email.utils import parsedate_to_datetime
+    try:
+        return parsedate_to_datetime(text).isoformat()
+    except (TypeError, ValueError):
+        return text
+
+
 def _posts_from_feed(body: bytes, base: str) -> tuple[str, list[dict]]:
     import xml.etree.ElementTree as ET
     try:
@@ -875,7 +884,7 @@ def _posts_from_feed(body: bytes, base: str) -> tuple[str, list[dict]]:
             "title": clean_text(it.findtext("title", "Untitled")),
             "slug": link.rstrip("/").rsplit("/", 1)[-1],
             "url": link,
-            "date": it.findtext("pubDate", ""),
+            "date": rss_date(it.findtext("pubDate", "")),
             "audience": "only_paid" if PAID_MARKERS.search(tail) else "everyone",
             "type": "podcast" if it.find("enclosure") is not None and "audio" in (it.find("enclosure").get("type") or "") else "newsletter",
             "author": clean_text(it.findtext("dc:creator", "", ns)),
@@ -1719,7 +1728,7 @@ def run_sstack_test(args: list[str]) -> None:
     free = [p for p in posts if not is_paid(p) and p.get("type") in (None, "", "newsletter")]
     if free:
         res = glean_sstack(base, name, free[0], Delivery(Settings(discord_token="test", output_dir=out)))
-        print(f"converted: {res.title} -> {out / res.stored_as} [{res.note}]")
+        print(f"converted: {res.title} -> {out / SSTACKS_FOLDER / res.stored_as} [{res.note}]")
 
 
 def main() -> None:
