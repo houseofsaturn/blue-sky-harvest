@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-wikidict: an offline Wikipedia dictionary for Cyby (KOReader), made on exlo.
+wikidict: an offline Wikipedia dictionary for cyby (KOReader), made on exlo.
 
-Long-press a word on Cyby and the opening of its Wikipedia article appears,
+Long-press a word on cyby and the opening of its Wikipedia article appears,
 with no Wi-Fi. Built from the Wikipedia .zim that WIKISTACK already reads,
 keeping only the most-read articles so it stays small.
 
@@ -15,7 +15,7 @@ page-view counts (about 24 files, ~50 MB each, kept in ~/.cache/wikidict so a
 second run needs no download), adds them up, and keeps the most-read articles.
 
 Output: a folder (e.g. ~/wikidict/Wikipedia 100k) holding a StarDict
-dictionary. Copy that folder into koreader/data/dict/ on Cyby.
+dictionary. Copy that folder into koreader/data/dict/ on cyby.
 
 Needs: python3, python3-libzim, python3-lxml (all already used by WIKISTACK).
 Text from Wikipedia, CC BY-SA 4.0.
@@ -397,7 +397,7 @@ def short(n):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Offline Wikipedia dictionary for Cyby (KOReader)")
+    ap = argparse.ArgumentParser(description="Offline Wikipedia dictionary for cyby (KOReader)")
     ap.add_argument("--articles", type=int, default=100_000, help="how many articles (default 100000)")
     ap.add_argument("--length", type=int, default=700, help="roughly how many characters per entry (default 700)")
     ap.add_argument("--zim", help="the Wikipedia .zim (default: the biggest in ~/zim)")
@@ -463,7 +463,7 @@ def main():
         f"{len(synonyms):,} other names, {size / 1e6:.0f} MB")
     say(f"({skipped:,} skipped: disambiguation or list pages with no opening text)")
     say(f"Dictionary folder: {folder}")
-    say("Copy that whole folder into  koreader/data/dict/  on Cyby.")
+    say("Copy that whole folder into  koreader/data/dict/  on cyby.")
 
 
 if __name__ == "__main__":

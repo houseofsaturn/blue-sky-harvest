@@ -14,6 +14,7 @@ architecture; this file has the working context.
   infrastructure, relying less on the iPhone and MacBook.
 
 ## Rules
+- **Device names are lowercase**: cyby, exlo, fatline, gleaner — even at the start of a sentence.
 - **Never ask JC to paste secrets into chat** (Discord token, Dropbox keys, ctx.fm key).
   Use `read -s` prompts that write to `~/.gleaner/*.env`. The Mac's shell is **zsh**:
   `read -s "K?prompt: "` (bash's `read -p` fails there).
@@ -22,20 +23,21 @@ architecture; this file has the working context.
 - When sending a new gleaner.py: JC downloads it, then
   `mv ~/Downloads/gleaner.py ~/gleaner/gleaner.py && cd ~/gleaner && bash service.sh restart`,
   and check the log shows the new version (`grep __version__ ~/gleaner/gleaner.py`).
-- Plugin update on Cyby (plugged into the Mac):
+- Plugin update on cyby (plugged into the Mac):
   `rm -rf /Volumes/Kindle/koreader/plugins/gleanings.koplugin && unzip -o ~/Downloads/gleanings.koplugin.zip -d /Volumes/Kindle/koreader/plugins/`,
   verify with grep, eject, restart KOReader.
 - The WIKISTACK project has sealed story content (`claude/SEALED_STORY.md` in that repo):
   never reveal it to JC.
 
 ## Current state (Nov 2026)
-- **gleaner 0.9.0** runs on JC's personal MacBook as a launchd service
+- **gleaner 0.9.0** runs on JC's personal MacBook (repo has 0.9.1: only "Cyby" → "cyby" in
+  bot messages; deploy whenever convenient) as a launchd service
   (`com.blueskyharvest.gleaner`, log `~/Library/Logs/gleaner.log`), `MODE=local` into
   `~/Library/CloudStorage/Dropbox/Apps/cyby`.
 - Discord channels (Blue Sky Harvest): `#gleanings`, `#sleepy-screens`, `#readings`,
   `#sstacks`, `#listenings`. Env has `SCREENSAVER_CHANNEL=sleepy-screens`,
   `LISTEN_CHANNEL=listenings`; readings and sstacks are the code defaults.
-- **Cyby** (Kindle Paperwhite 2, KOReader v2026.07.1): gleanings plugin syncs
+- **cyby** (Kindle Paperwhite 2, KOReader v2026.07.1): gleanings plugin syncs
   `documents/gleanings`, `documents/readings`, `documents/sstacks` and `/mnt/us/screensavers`.
   Use Tools → Gleanings → Sync now, never Cloud storage → Synchronize. About 1.2 GB free.
   Dictionaries: English Wiktionary (first) and GCIDE. Backup of KOReader data:
@@ -59,16 +61,16 @@ architecture; this file has the working context.
   on his work MacBook; he's advised to move it to a phone authenticator app.
 
 ## Next
-1. Wikipedia dictionary for Cyby: run `tools/wikidict.py` on exlo or the server.
+1. Wikipedia dictionary for cyby: run `tools/wikidict.py` on exlo or the server.
 2. Set up the X200 server (fatline) and move gleaner to it.
 3. Map atlases: `#maps` channel, greyscale PDF atlases from OpenStreetMap, rendered on the server.
-4. Save Wikipedia pictures from Cyby (KOReader plugin → #sleepy-screens via webhook, or a folder).
-5. exlo off-grid: GPS from the H2T, exlo's own Wi-Fi hotspot so Cyby can collect from exlo
+4. Save Wikipedia pictures from cyby (KOReader plugin → #sleepy-screens via webhook, or a folder).
+5. exlo off-grid: GPS from the H2T, exlo's own Wi-Fi hotspot so cyby can collect from exlo
    away from home, local maps, a daily briefing card (sunrise/sunset, moon, saved forecast,
    barometer via a BME280, tide tables fetched ahead).
 6. #readings auto-fixing books with no working table of contents (mobi2epub, Calibre).
 
-Parked: iPod (Rockbox, SD mod, offline music shelf, listening notes); Cyby highlights to a
-reading-notes forum; weekly reading note; WIKISTACK daily cards on Cyby; SSH to Cyby (timed
+Parked: iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
+reading-notes forum; weekly reading note; WIKISTACK daily cards on cyby; SSH to cyby (timed
 out, unresolved); Winlink / amateur radio (JC wants a Foundation licence some day);
 Calibre wireless to KOReader.

@@ -1,9 +1,9 @@
 # gleaner
 
-The Discord courier for **Cyby**. It watches five channels on Blue Sky Harvest.
+The Discord courier for **cyby**. It watches five channels on Blue Sky Harvest.
 
-### #gleanings → Cyby's library
-| You post | Cyby gets |
+### #gleanings → cyby's library
+| You post | cyby gets |
 |---|---|
 | a link to an article | a clean EPUB: title, byline, text, greyscale images |
 | a link to a PDF or EPUB | the file, as-is (up to 60 MB) |
@@ -13,19 +13,19 @@ The Discord courier for **Cyby**. It watches five channels on Blue Sky Harvest.
 
 Short chat lines are ignored.
 
-### #sleepy-screens → Cyby's sleep screens
+### #sleepy-screens → cyby's sleep screens
 Post images (attached or linked). Each becomes a 758×1024 greyscale PNG: never cropped or
 enlarged, at least a 5 mm white margin, usually placed towards a corner (one in five centred).
 Put the word `centre` in the message to centre it. Delete the post to delete the sleep screen.
 
-### #readings → Cyby's books folder
+### #readings → cyby's books folder
 Attach an ebook (EPUB, PDF, MOBI, AZW3, FB2, DjVu, CBZ, TXT and other formats KOReader opens),
 or post a direct download link (up to 60 MB). It's passed through untouched, keeping its own
-filename (made plain ASCII), and Cyby files it in `documents/readings`. Files too big for Discord
+filename (made plain ASCII), and cyby files it in `documents/readings`. Files too big for Discord
 can be dropped straight into Dropbox → Apps → cyby → readings.
 Cover and metadata files posted with a book (Calibre's `.opf`, `cover.jpg`) are left out quietly.
 
-### #sstacks → Cyby's sstacks folder
+### #sstacks → cyby's sstacks folder
 A few chosen Substack writers. Post a Substack link (`name.substack.com`, a post, or
 `substack.com/@writer`) to subscribe. gleaner checks every 3 hours and sends each new **free**
 post as a clean EPUB; paid-only posts are skipped with a 🔒 note, podcasts and threads ignored.

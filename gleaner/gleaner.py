@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gleaner — a Discord courier for Cyby (a jailbroken Kindle running KOReader).
+gleaner — a Discord courier for cyby (a jailbroken Kindle running KOReader).
 
 Post in #gleanings (in Blue Sky Harvest):
   * a link to an article      -> cleaned up and bound into an EPUB
@@ -9,7 +9,7 @@ Post in #gleanings (in Blue Sky Harvest):
   * an attached .txt / .md / .html file, or a block of pasted text
                               -> bound into an EPUB
 
-Finished files are written to the Dropbox app folder that Cyby syncs from:
+Finished files are written to the Dropbox app folder that cyby syncs from:
   * "local" mode (default): saved straight into the Dropbox desktop app's
     folder, e.g. ~/Library/CloudStorage/Dropbox/Apps/cyby
   * "api" mode: uploaded with the Dropbox API, for machines without the
@@ -48,7 +48,7 @@ import trafilatura
 from ebooklib import epub
 from PIL import Image
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 CONFIG_DIR = Path(os.environ.get("GLEANER_CONFIG_DIR", Path.home() / ".gleaner"))
 USER_AGENT = (
@@ -294,7 +294,7 @@ def http_get(url: str, accept: str = "*/*") -> tuple[bytes, str, str]:
         with urllib.request.urlopen(req, timeout=45) as r:
             body = r.read(MAX_DOWNLOAD + 1)
             if len(body) > MAX_DOWNLOAD:
-                raise GleanError("that file is over 60 MB, too big to send to Cyby")
+                raise GleanError("that file is over 60 MB, too big to send to cyby")
             ctype = r.headers.get("Content-Type", "").split(";")[0].strip().lower()
             return body, ctype, r.geturl()
     except urllib.error.HTTPError as e:
@@ -706,7 +706,7 @@ def glean_text(text: str, delivery: Delivery) -> Result:
 # books: ebook files passed through untouched to their own folder
 # --------------------------------------------------------------------------
 
-BOOKS_FOLDER = "readings"                # Dropbox subfolder; Cyby puts these in documents/readings
+BOOKS_FOLDER = "readings"                # Dropbox subfolder; cyby puts these in documents/readings
 BOOK_EXTS = (".epub", ".kepub", ".pdf", ".mobi", ".azw", ".azw3", ".fb2", ".djvu", ".djv",
              ".cbz", ".cbr", ".cb7", ".txt", ".rtf", ".docx", ".chm", ".htmlz")
 BOOK_TYPES = {"application/epub+zip": ".epub", "application/pdf": ".pdf",
@@ -739,7 +739,7 @@ def book_title(stored: str) -> str:
 
 
 def check_book(name: str, data: bytes) -> str:
-    """the file's extension if it's an ebook Cyby can open, else raise"""
+    """the file's extension if it's an ebook cyby can open, else raise"""
     ext = Path(name).suffix.lower()
     if ext not in BOOK_EXTS:
         raise GleanError(f"{ext or 'that'} isn't an ebook format KOReader opens "
@@ -782,7 +782,7 @@ def glean_book_url(url: str, delivery: Delivery) -> Result:
 # sstacks: new free posts from a few chosen Substack publications
 # --------------------------------------------------------------------------
 
-SSTACKS_FOLDER = "sstacks"               # Dropbox subfolder; Cyby puts these in documents/sstacks
+SSTACKS_FOLDER = "sstacks"               # Dropbox subfolder; cyby puts these in documents/sstacks
 SSTACKS_STATE = "sstacks.json"           # in ~/.gleaner: subscriptions, cap, what's been sent
 SSTACKS_CHECK_EVERY = 3 * 3600           # seconds between checks of every publication
 SSTACKS_TICK = 15 * 60                   # how often the loop wakes to see if a check is due
@@ -998,14 +998,14 @@ class Sstacks:
         return None
 
 
-SSTACKS_HELP = """**gleaner** brings new *free* posts from a few chosen Substack writers to Cyby.
+SSTACKS_HELP = """**gleaner** brings new *free* posts from a few chosen Substack writers to cyby.
 • post a **Substack link** (name.substack.com, or substack.com/@writer) → subscribe
 • `!list` who you're subscribed to · `!unsubscribe name` stop one
 • `!cap 3` at most 3 posts a week · `!cap` see this week's count · `!cap off` no limit
 • `!check` look for new posts now (gleaner also checks every few hours)
 Only posts published after you subscribe. Paid-only posts are skipped with a note.
 Over the cap, posts wait for next week, but never more than a week's worth.
-They arrive on Cyby in **documents/sstacks**."""
+They arrive on cyby in **documents/sstacks**."""
 
 
 # --------------------------------------------------------------------------
@@ -1013,7 +1013,7 @@ They arrive on Cyby in **documents/sstacks**."""
 # --------------------------------------------------------------------------
 
 SCREEN_W, SCREEN_H = 758, 1024           # Paperwhite 2, portrait
-SCREENS_FOLDER = "screensavers"          # Dropbox subfolder Cyby syncs from
+SCREENS_FOLDER = "screensavers"          # Dropbox subfolder cyby syncs from
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".heic")
 
 
@@ -1207,15 +1207,15 @@ def wants_collection(text: str) -> bool:
 # Discord
 # --------------------------------------------------------------------------
 
-HELP = """**gleaner** gathers things for Cyby. In this channel, post:
+HELP = """**gleaner** gathers things for cyby. In this channel, post:
 • a **link** to an article → cleaned up and bound as an EPUB
 • a **link to a PDF**, or an attached **PDF/EPUB** → passed through as-is
 • an attached **.txt / .md / .html**, or a **block of text** → bound as an EPUB
 
-Cyby collects them by itself (or Tools → Gleanings → Sync now).
+cyby collects them by itself (or Tools → Gleanings → Sync now).
 Commands: `!recent` latest deliveries · `!ping` am I awake · `!help` this message"""
 
-SCREENS_HELP = """**gleaner** makes Cyby's sleep screens from this channel. Post:
+SCREENS_HELP = """**gleaner** makes cyby's sleep screens from this channel. Post:
 • **images** (attached, or a direct link to an image) → greyscale, never cropped, at their own size
   (or shrunk to fit), placed towards a corner of a white page (some centred), with at least 5 mm of margin
 • add the word **centre** to always place it in the middle
@@ -1231,10 +1231,10 @@ LISTEN_HELP = """**gleaner** passes music to ctx.fm from this channel. Post:
 Commands: `!ctx` check the ctx.fm connection · `!ping` · `!help`"""
 
 
-BOOKS_HELP = """**gleaner** carries ebooks to Cyby from this channel. Post:
+BOOKS_HELP = """**gleaner** carries ebooks to cyby from this channel. Post:
 • an attached **ebook** (EPUB, PDF, MOBI, AZW3, FB2, DjVu, CBZ, TXT…) → passed through untouched
 • a **direct download link** to one → fetched (up to 60 MB) and passed through
-Cyby files them in **documents/readings** on its next sync.
+cyby files them in **documents/readings** on its next sync.
 
 Too big for Discord? Post a link instead, or drop the file into Dropbox → Apps → cyby → readings.
 Commands: `!recent` latest books · `!ping` · `!help`"""
@@ -1302,7 +1302,7 @@ class Gleaner(discord.Client):
             log.info("removed %d sleep screen(s) for deleted post %s", gone, payload.message_id)
             left = await asyncio.to_thread(self.delivery.count, SCREENS_FOLDER)
             try:
-                await channel.send(f"🗑 Removed {gone} image{'s' if gone != 1 else ''} from Cyby's sleep screens "
+                await channel.send(f"🗑 Removed {gone} image{'s' if gone != 1 else ''} from cyby's sleep screens "
                                    f"({left} left).", delete_after=15)
             except discord.HTTPException:
                 pass
@@ -1368,7 +1368,7 @@ class Gleaner(discord.Client):
             return
         if command == "!count":
             n = await asyncio.to_thread(self.delivery.count, SCREENS_FOLDER)
-            await message.reply(f"🖼 {n} image{'s' if n != 1 else ''} in Cyby's sleep-screen rotation.",
+            await message.reply(f"🖼 {n} image{'s' if n != 1 else ''} in cyby's sleep-screen rotation.",
                                 mention_author=False)
             return
         if command == "!ping":
@@ -1552,7 +1552,7 @@ class Gleaner(discord.Client):
             st.data["last_check"] = time.time()
             st.save()
         if delivered:
-            notes.append("_On its way to Cyby's sstacks, it'll arrive on the next sync._")
+            notes.append("_On its way to cyby's sstacks, it'll arrive on the next sync._")
         return notes
 
     async def sstacks_loop(self):
@@ -1628,11 +1628,11 @@ class Gleaner(discord.Client):
         if failed < len(jobs) and self.kind_of(message.channel) != "listen":
             if self.is_screens(message.channel):
                 n = await asyncio.to_thread(self.delivery.count, SCREENS_FOLDER)
-                lines.append(f"_Added to Cyby's sleep screens ({n} in rotation)._")
+                lines.append(f"_Added to cyby's sleep screens ({n} in rotation)._")
             elif self.kind_of(message.channel) == "books":
-                lines.append("_On its way to Cyby's readings, it'll arrive on the next sync._")
+                lines.append("_On its way to cyby's readings, it'll arrive on the next sync._")
             else:
-                lines.append("_Ready for Cyby, it'll collect this on its next sync._")
+                lines.append("_Ready for cyby, it'll collect this on its next sync._")
         await message.reply("\n".join(lines)[:1990], mention_author=False, suppress_embeds=True)
 
 

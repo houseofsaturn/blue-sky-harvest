@@ -477,8 +477,8 @@ function Gleanings:toggleScreens()
         if name:lower():match("%.png$") then n = n + 1 end
     end
     UIManager:show(InfoMessage:new{
-        text = n > 0 and string.format(_("Cyby will show one of %d images each time it sleeps."), n)
-            or _("Done. Post images in #sleepy-screens, then sync, and they'll appear when Cyby sleeps."),
+        text = n > 0 and string.format(_("cyby will show one of %d images each time it sleeps."), n)
+            or _("Done. Post images in #sleepy-screens, then sync, and they'll appear when cyby sleeps."),
     })
 end
 
