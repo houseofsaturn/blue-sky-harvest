@@ -62,6 +62,8 @@ WIKISTACK has its own repo and project and stays out of this one.
 - **cyby** (Kindle Paperwhite 2, KOReader v2026.07.1): gleanings plugin syncs
   `documents/gleanings`, `documents/readings`, `documents/sstacks` and `/mnt/us/screensavers`.
   Use Tools → Gleanings → Sync now, never Cloud storage → Synchronize. About 1.2 GB free.
+  User patches live in `koreader/patches/` (repo) → `koreader/patches/` on cyby;
+  `2-cyby-title.lua` shows "cyby" instead of "KOReader" on the home screen.
   Dictionaries: English Wiktionary (first) and GCIDE. Backup of KOReader data:
   `~/cyby-backup` on the Mac (rsync commands in chat history).
 - #sstacks subscribed to Kevin Munger's *Never Met a Science* (kevinmunger.substack.com).
