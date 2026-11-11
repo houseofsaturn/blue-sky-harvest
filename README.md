@@ -2,6 +2,10 @@
 
 A calmer way to take things from the internet. Nothing arrives unless JC chose it.
 
+A calm network whose infrastructure is mostly self-owned; a project to learn from; old,
+seemingly defunct hardware given a second life; more autonomy and less big tech, in the
+spirit of the original hacker ethos; sustainable, and sometimes off-grid.
+
 It is built around **cyby**, a jailbroken Kindle Paperwhite 2 running KOReader, and
 **Blue Sky Harvest**, a private Discord server. Things posted to the server's channels
 are turned into something useful and delivered to cyby, or to ctx.fm. The only automatic

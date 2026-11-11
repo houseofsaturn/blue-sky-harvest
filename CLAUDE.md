@@ -10,8 +10,29 @@ architecture; this file has the working context.
   over quantity. A fine-tuned, curated, safe space." **Nothing arrives unless JC chose it.**
   No RSS dumps, no auto-feeds. The one exception is #sstacks (a few chosen Substack writers,
   free posts only, weekly cap).
-- Wider aim: rescue obsolete hardware (old Kindle, ThinkPads, maybe an iPod) and own the
-  infrastructure, relying less on the iPhone and MacBook.
+- The wider ethos (JC, 11 Nov 2026):
+  - a **calm network** whose infrastructure JC mostly owns
+  - a project JC **learns from**
+  - **giving life back** to seemingly defunct technology (old Kindle, ThinkPads, maybe an iPod)
+  - a more **autonomous** network, moving away from big tech (less reliance on the iPhone
+    and MacBook)
+  - the original **hacker ethos**
+  - **sustainable**, and sometimes **off-grid**
+  Weigh every design choice against these.
+
+## How this project is organised
+One chat per area inside the claude.ai project. Chats can't talk to each other directly,
+so **this file is the shared notebook**: when a chat finishes something, it updates
+"Current state" / "Next" here and pushes to GitHub, so the next chat starts from the
+latest picture. Pull before editing (another chat may have pushed).
+- **gleaner**: the Discord bot and its channels, incl. the #readings TOC fixer
+- **cyby**: the Kindle, KOReader plugin, Wikipedia dictionary, saving Wikipedia pictures,
+  highlights / reading notes
+- **fatline**: the always-on server (spare X200) and moving gleaner onto it
+- **exlo off-grid**: GPS (H2T), exlo's own Wi-Fi for cyby, the daily briefing card
+- **maps**: #maps channel and map atlases (touches fatline, cyby and exlo)
+- **parked**: iPod / Rockbox, Winlink / radio, as and when
+WIKISTACK has its own repo and project and stays out of this one.
 
 ## Rules
 - **Device names are lowercase**: cyby, exlo, fatline, gleaner — even at the start of a sentence.
@@ -55,13 +76,21 @@ architecture; this file has the working context.
   2.5" SATA SSD (500 GB–1 TB), Debian, TLP battery limits, lid-closed. Then gleaner moves
   there with `MODE=api` and the Mac copy is uninstalled. Pi only if power or noise bothers him.
   Waiting on: RAM and drive size of the X200.
+- **exlomax**: high-spec Windows 11 Pro PC in JC's office (department-owned, full permission;
+  reached over SSH from the MacBook). Ryzen 9 5900X (12 cores / 24 threads), 32 GB RAM,
+  RTX 3080 Ti (12 GB), Python 3.12, ~1.36 TB free on D: (Oct 2026). Already holds a copy of
+  exlo's Wikipedia ZIM (`wikipedia_en_all_maxi_2026-08.zim`). **Not part of Blue Sky
+  Harvest's infrastructure**: only for heavy one-off processing during the build (e.g. the
+  Wikipedia dictionary, map rendering). Nothing should depend on it running. Specs come
+  from the WIKISTACK repo (docs/HANDOVER.md).
 - **H2T**: Heltec T114 Meshtastic node with GPS. Mesh messaging rejected; GPS for exlo is the use.
 - **iPod** (generation unknown, check model number A1136 / A1238): idea is Rockbox + SD mod.
 - GitHub account houseofsaturn (repos: wikistack, blue-sky-harvest). JC's 2FA currently lives
   on his work MacBook; he's advised to move it to a phone authenticator app.
 
 ## Next
-1. Wikipedia dictionary for cyby: run `tools/wikidict.py` on exlo or the server.
+1. Wikipedia dictionary for cyby: run `tools/wikidict.py` on exlomax (fastest; it already
+   has the ZIM), exlo or the server.
 2. Set up the X200 server (fatline) and move gleaner to it.
 3. Map atlases: `#maps` channel, greyscale PDF atlases from OpenStreetMap, rendered on the server.
 4. Save Wikipedia pictures from cyby (KOReader plugin → #sleepy-screens via webhook, or a folder).
