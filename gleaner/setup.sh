@@ -16,7 +16,9 @@ echo "   Python: $(python3 --version)"
 
 if [ ! -d .venv ]; then
   echo "   Creating a private Python environment (.venv)…"
-  python3 -m venv .venv
+  python3 -m venv .venv || {
+    echo "❌ Couldn't create it. On Debian (fatline), run:  sudo apt install python3-venv"
+    echo "   then:  rm -rf .venv  and run this again."; exit 1; }
 fi
 echo "   Installing libraries (a minute or two the first time)…"
 .venv/bin/pip install -q --upgrade pip
@@ -47,7 +49,16 @@ EOF
 fi
 
 echo
-echo "   Checking the Dropbox folder…"
-.venv/bin/python -c "import gleaner; print('   ✅ will deliver to', gleaner.default_dropbox_dir())"
+if grep -qi '^MODE=api' "$CONF/gleaner.env"; then
+  echo "   MODE=api: checking the Dropbox login…"
+  if [ -f "$CONF/dropbox.env" ]; then
+    python3 dropbox_login.py --check
+  else
+    echo "   ⚠️  No Dropbox login yet. Run:  python3 dropbox_login.py"
+  fi
+else
+  echo "   Checking the Dropbox folder…"
+  .venv/bin/python -c "import gleaner; print('   ✅ will deliver to', gleaner.default_dropbox_dir())"
+fi
 echo
 echo "Done. Start gleaner with:   bash $HERE/run.sh"

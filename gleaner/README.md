@@ -83,14 +83,11 @@ Save secrets without them showing on screen (zsh):
 .venv/bin/python gleaner.py --test "https://some.site/article" ~/Desktop/gleaner-test
 ```
 
-## Moving to the Raspberry Pi (or exlo)
+## Moving to fatline (or any Linux machine)
 
-1. Clone this repository and copy `~/.gleaner/` across.
-2. In `~/.gleaner/gleaner.env` set `MODE=api`. gleaner then uploads with the Dropbox key in
-   `~/.gleaner/dropbox.env`, so no Dropbox app is needed.
-3. `bash setup.sh`, then run it as a service (a systemd unit on Linux, to be written).
-4. Stop the Mac's copy (`bash service.sh uninstall`) so only one gleaner answers.
-
-On Debian, if `pip` fails building `lxml` or `Pillow`, install them first:
-`sudo apt install python3-lxml python3-pil python3-venv`, then create the venv with
-`python3 -m venv --system-site-packages .venv`.
+The full walk-through is in [`../fatline/README.md`](../fatline/README.md). In short:
+copy `~/.gleaner/` across, set `MODE=api`, run `python3 dropbox_login.py` (writes
+`~/.gleaner/dropbox.env`; `--check` tests it), `bash setup.sh`, then stop the Mac's copy
+(`bash service.sh uninstall`) and start this one (`bash service.sh install`). On Linux,
+`service.sh` makes a systemd user service that runs from boot; `status`, `log`, `restart`
+and `uninstall` work the same as on the Mac.

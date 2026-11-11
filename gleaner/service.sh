@@ -1,5 +1,7 @@
 #!/bin/bash
-# Run gleaner as a background service on macOS (starts at login, restarts if it stops).
+# Run gleaner as a background service (starts by itself, restarts if it stops).
+#   macOS: a launchd agent (starts at login).
+#   Linux (fatline): a systemd user service that runs from boot, nobody logged in.
 #   bash service.sh install     set up and start
 #   bash service.sh status      is it running? (plus the last few log lines)
 #   bash service.sh log         follow the log live (Ctrl+C to stop watching)
@@ -8,6 +10,69 @@
 set -e
 cd "$(dirname "$0")"
 HERE="$(pwd)"
+
+if [ "$(uname)" = "Linux" ]; then
+  UNIT="gleaner.service"
+  UNIT_FILE="$HOME/.config/systemd/user/$UNIT"
+  case "${1:-}" in
+    install)
+      if [ ! -x "$HERE/.venv/bin/python" ]; then
+        echo "❌ Run  bash setup.sh  first."; exit 1
+      fi
+      mkdir -p "$(dirname "$UNIT_FILE")"
+      printf '%s\n' \
+        "[Unit]" \
+        "Description=gleaner, the Blue Sky Harvest courier for cyby" \
+        "Wants=network-online.target" \
+        "After=network-online.target" \
+        "" \
+        "[Service]" \
+        "WorkingDirectory=$HERE" \
+        "ExecStart=$HERE/.venv/bin/python -u $HERE/gleaner.py" \
+        "Restart=always" \
+        "RestartSec=30" \
+        "Nice=5" \
+        "" \
+        "[Install]" \
+        "WantedBy=default.target" > "$UNIT_FILE"
+      echo "   Letting gleaner run from boot, even when nobody is logged in"
+      echo "   (may ask for your password)…"
+      sudo loginctl enable-linger "$USER"
+      systemctl --user daemon-reload
+      systemctl --user enable --now "$UNIT"
+      echo "✅ gleaner installed as a background service."
+      echo "   It starts when this machine boots and restarts itself if it stops."
+      sleep 8
+      bash "$HERE/service.sh" status
+      ;;
+    status)
+      if systemctl --user is-active --quiet "$UNIT"; then
+        echo "🌾 gleaner is running."
+      else
+        echo "💤 gleaner is not running right now."
+      fi
+      echo "--- last log lines ---"
+      journalctl --user -u "$UNIT" -n 6 --no-pager -o cat 2>/dev/null || true
+      ;;
+    log)
+      journalctl --user -u "$UNIT" -n 30 -f -o cat
+      ;;
+    restart)
+      systemctl --user restart "$UNIT" && echo "🔄 gleaner restarted." && sleep 6 && bash "$HERE/service.sh" status
+      ;;
+    uninstall)
+      systemctl --user disable --now "$UNIT" 2>/dev/null || true
+      rm -f "$UNIT_FILE"
+      systemctl --user daemon-reload
+      echo "✅ gleaner service removed. (Run it by hand any time with  bash run.sh)"
+      ;;
+    *)
+      echo "Usage: bash service.sh install | status | log | restart | uninstall"
+      ;;
+  esac
+  exit 0
+fi
+
 LABEL="com.blueskyharvest.gleaner"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 LOG="$HOME/Library/Logs/gleaner.log"

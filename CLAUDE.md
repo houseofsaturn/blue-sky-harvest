@@ -76,6 +76,13 @@ WIKISTACK has its own repo and project and stays out of this one.
   2.5" SATA SSD (500 GB–1 TB), Debian, TLP battery limits, lid-closed. Then gleaner moves
   there with `MODE=api` and the Mac copy is uninstalled. Pi only if power or noise bothers him.
   Waiting on: RAM and drive size of the X200.
+  Software side ready (11 Nov 2026): step-by-step guide in `fatline/README.md` (Debian netinst,
+  no desktop, SSH as `fatline.local` via avahi, lid ignore, consoleblank, unattended-upgrades,
+  TLP 40/80 via tp-smapi-dkms, read-only GitHub deploy key, `scp -r ~/.gleaner`),
+  `gleaner/service.sh` now does Linux too (systemd user service + linger; log via journalctl),
+  and `gleaner/dropbox_login.py` makes `~/.gleaner/dropbox.env` (same Dropbox app as cyby's
+  KOReader; needs files.content.write). On fatline gleaner lives in `~/blue-sky-harvest/gleaner`
+  and updates with `git pull && bash service.sh restart`.
 - **exlomax**: high-spec Windows 11 Pro PC in JC's office (department-owned, full permission;
   reached over SSH from the MacBook). Ryzen 9 5900X (12 cores / 24 threads), 32 GB RAM,
   RTX 3080 Ti (12 GB), Python 3.12, ~1.36 TB free on D: (Oct 2026). Already holds a copy of
