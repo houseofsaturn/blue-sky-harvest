@@ -31,7 +31,7 @@ sleep screen; anything deleted on Cyby stays deleted.
 
 | Folder | What it is |
 |---|---|
-| [`gleaner/`](gleaner/) | The Discord bot (Python). Runs on the MacBook as a background service for now; built to move to a Raspberry Pi. |
+| [`gleaner/`](gleaner/) | The Discord bot (Python). Runs on the MacBook as a background service for now; built to move to the server (fatline). |
 | [`koreader/gleanings.koplugin/`](koreader/gleanings.koplugin/) | Cyby's sync plugin. Copy the folder to `koreader/plugins/` on the Kindle. |
 | [`tools/wikidict.py`](tools/wikidict.py) | Builds an offline Wikipedia dictionary for Cyby from the Wikipedia `.zim` on exlo. |
 | [`tools/mobi2epub.py`](tools/mobi2epub.py) | Turns an old Kindle MOBI into a clean EPUB with a working (optionally nested) table of contents. Used for *Labyrinths*; the start of the planned #readings fixer. |
@@ -51,8 +51,9 @@ On Cyby the Dropbox details are in KOReader's own cloud-storage settings.
 - **Cyby**: Kindle Paperwhite 2 (DP75SDI), firmware 5.12.2.2, WatchThis jailbreak, KUAL, KOReader.
 - **MacBook**: runs gleaner today, saving into the Dropbox desktop folder (`MODE=local`).
 - **exlo**: ThinkPad X200s, the semi-offline cyberdeck. Holds the full English Wikipedia (WIKISTACK).
-- **The Pi** (planned): the always-on home server. Runs gleaner (`MODE=api`), keeps master
-  copies of the big archives fresh, builds dictionaries and maps, and tops exlo up when it's home.
+- **fatline** (planned): the always-on server, starting on a spare ThinkPad X200 (a Pi later
+  only if needed). Runs gleaner (`MODE=api`), keeps master copies of the big archives fresh,
+  builds dictionaries and maps, and tops exlo up when it's home.
 
 ## What's next
 
@@ -62,10 +63,10 @@ On Cyby the Dropbox details are in KOReader's own cloud-storage settings.
    tappable grid squares) from OpenStreetMap data.
 3. **Save Wikipedia pictures from Cyby**: a KOReader plugin that sends a picture from a
    Wikipedia lookup to #sleepy-screens, or saves it to a folder.
-4. **The Pi**: hardware, set-up, move gleaner across.
+4. **fatline**: set up the spare X200 (SSD, Debian), move gleaner across.
 5. **exlo off-grid**: GPS from the H2T, exlo's own Wi-Fi so Cyby can collect from it away
    from home, local map atlases, and a daily briefing card (sunrise/sunset, moon, saved
    forecast, barometer, tide tables fetched ahead).
 
-Parked: #readings automatically fixing books with no working table of contents (convert to EPUB with chapters), Cyby highlights into a reading-notes forum, a weekly reading note, WIKISTACK daily
+Parked: an iPod with Rockbox as an offline music shelf, #readings automatically fixing books with no working table of contents (convert to EPUB with chapters), Cyby highlights into a reading-notes forum, a weekly reading note, WIKISTACK daily
 cards on Cyby, SSH to Cyby, mesh radio (LoRa/Meshtastic) and Winlink.
