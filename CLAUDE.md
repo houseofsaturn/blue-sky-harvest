@@ -29,7 +29,7 @@ latest picture. Pull before editing (another chat may have pushed).
 - **cyby**: the Kindle, KOReader plugin, Wikipedia dictionary, saving Wikipedia pictures,
   highlights / reading notes
 - **fatline**: the always-on server (spare X200) and moving gleaner onto it
-- **exlo off-grid**: GPS (H2T), exlo's own Wi-Fi for cyby, the daily briefing card
+- **#off-grid** (exlo off-grid): GPS (H2T), exlo's own Wi-Fi for cyby, the daily briefing card
 - **maps**: #maps channel and map atlases (touches fatline, cyby and exlo)
 - **parked**: iPod / Rockbox, Winlink / radio, as and when
 - **general / FAQ**: questions about the project as a whole, housekeeping, cross-area decisions
