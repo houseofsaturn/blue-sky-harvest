@@ -33,6 +33,8 @@ latest picture. Pull before editing (another chat may have pushed).
 - **maps**: #maps channel and map atlases (touches fatline, cyby and exlo)
 - **parked**: iPod / Rockbox, Winlink / radio, as and when
 - **#faq** (general questions): questions about the project as a whole, housekeeping, cross-area decisions
+- **ctx.fm**: JC's music library (queue / collection / rotation / notes) and how it joins
+  the project (#listenings, cyby, iPod). API reference: `docs/ctx-api/` (README = short version)
 WIKISTACK has its own repo and project and stays out of this one.
 
 ## Rules
@@ -69,6 +71,8 @@ WIKISTACK has its own repo and project and stays out of this one.
 - #sstacks subscribed to Kevin Munger's *Never Met a Science* (kevinmunger.substack.com).
   Substack's archive API didn't answer from the Mac; the RSS fallback works.
 - Other ways in: drag files into Dropbox → Apps → cyby → readings (or sstacks) on the Mac.
+- ctx.fm API spec saved in `docs/ctx-api/openapi.yaml` (12 Nov 2026), with a summary of the routes that matter
+  in `docs/ctx-api/README.md`. gleaner uses only `profile` and `url-add` so far.
 - `tools/mobi2epub.py` fixed *Labyrinths* (MOBI7 with a TOC KOReader couldn't read).
 
 ## Machines
