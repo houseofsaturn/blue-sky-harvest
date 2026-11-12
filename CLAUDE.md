@@ -122,7 +122,14 @@ read "what's on rotation" as a starting point (decided 12 Nov 2026). ctx has two
 the pick JC reacts to, and mark or skip suggestions already in his queue or collection.
 **No AI in the final build** (JC's decision): every suggestion comes with the Wikipedia sentence that
 connects it. "Primer" EPUBs for cyby (a calm, finished reading pack through several articles) are **on ice**
-until the conversations work. Nothing built yet.
+until the conversations work.
+**Prototype built (12 Nov 2026): `tools/connections.py`** (libzim + lxml only; borrows WIKISTACK's skip
+lists, link handling and LinkJudge scoring rather than importing wikistack.py). `python3 connections.py
+"Milford Graves" [--why] [--all]` → links ranked by mentions, lead, infobox, link-back, shared links;
+grouped as musicians/groups, records, labels, scenes (people/places/other with --all), each with its
+sentence. Tests: `tools/tests/test_connections.py` (made-up music archive + crash run over a real .zim;
+3,821 climate-mini articles, 0 errors). Not yet run on the full Wikipedia: next is JC running it on
+**exlo** (has python3-libzim, lxml and the maxi ZIM in ~/zim; repo via `gh repo clone`), then tune.
 
 Parked: iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
 reading-notes forum; weekly reading note; WIKISTACK daily cards on cyby; SSH to cyby (timed
