@@ -121,7 +121,12 @@ infoboxes, link-back / shared-link ranking). JC always names the artist or topic
 read "what's on rotation" as a starting point (decided 12 Nov 2026). ctx has two jobs only: queue
 the pick JC reacts to, and mark or skip suggestions already in his queue or collection.
 **No AI in the final build** (JC's decision): every suggestion comes with the Wikipedia sentence that
-connects it. "Primer" EPUBs for cyby (a calm, finished reading pack through several articles) are **on ice**
+connects it.
+**A command language, not a chatbot** (JC, 12 Nov 2026): gleaner recognises a small, fixed set of request
+templates (e.g. "define X", "connected to X", "N records of X"), strips filler, looks the subject up by
+title, and does one job per template. Unknown phrasing gets the list of forms it knows (and is logged so
+we can decide what to teach next). JC wants to learn its language like a command line: deliberate,
+focused questions fit the slow, calm network. Keep the vocabulary small and predictable. "Primer" EPUBs for cyby (a calm, finished reading pack through several articles) are **on ice**
 until the conversations work.
 **Prototype built (12 Nov 2026): `tools/connections.py`** (libzim + lxml only; borrows WIKISTACK's skip
 lists, link handling and LinkJudge scoring rather than importing wikistack.py). `python3 connections.py
