@@ -119,7 +119,8 @@ Idea in discussion (ctx.fm chat, 12 Nov 2026): **music conversations in #listeni
 "artists connected to Milford Graves", "who mattered in 70s free jazz" from Wikipedia (links,
 infoboxes, link-back / shared-link ranking), using ctx for context (rotation, queue) and to queue picks.
 **No AI in the final build** (JC's decision): every suggestion comes with the Wikipedia sentence that
-connects it. Possible "primer" EPUBs for cyby: a reading path through several articles. Nothing built yet.
+connects it. "Primer" EPUBs for cyby (a calm, finished reading pack through several articles) are **on ice**
+until the conversations work. Nothing built yet.
 
 Parked: iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
 reading-notes forum; weekly reading note; WIKISTACK daily cards on cyby; SSH to cyby (timed
