@@ -35,7 +35,9 @@ latest picture. Pull before editing (another chat may have pushed).
 - **#faq** (general questions): questions about the project as a whole, housekeeping, cross-area decisions
 - **ctx.fm**: JC's music library (queue / collection / rotation / notes) and how it joins
   the project (#listenings, cyby, iPod). API reference: `docs/ctx-api/` (README = short version)
-WIKISTACK has its own repo and project and stays out of this one.
+WIKISTACK has its own repo and project. Its *code* may be reused here (JC, 12 Nov 2026), e.g. its ZIM
+reader (`Stack`), link relatedness (`LinkJudge`) and article parser in `wikistack.py`; its story
+and game content stays out.
 
 ## Rules
 - **Device names are lowercase**: cyby, exlo, fatline, gleaner — even at the start of a sentence.
@@ -112,6 +114,12 @@ WIKISTACK has its own repo and project and stays out of this one.
    away from home, local maps, a daily briefing card (sunrise/sunset, moon, saved forecast,
    barometer via a BME280, tide tables fetched ahead).
 6. #readings auto-fixing books with no working table of contents (mobi2epub, Calibre).
+
+Idea in discussion (ctx.fm chat, 12 Nov 2026): **music conversations in #listenings**. gleaner answers
+"artists connected to Milford Graves", "who mattered in 70s free jazz" from Wikipedia (links,
+infoboxes, link-back / shared-link ranking), using ctx for context (rotation, queue) and to queue picks.
+**No AI in the final build** (JC's decision): every suggestion comes with the Wikipedia sentence that
+connects it. Possible "primer" EPUBs for cyby: a reading path through several articles. Nothing built yet.
 
 Parked: iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
 reading-notes forum; weekly reading note; WIKISTACK daily cards on cyby; SSH to cyby (timed
