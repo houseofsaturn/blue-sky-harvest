@@ -117,7 +117,9 @@ and game content stays out.
 
 Idea in discussion (ctx.fm chat, 12 Nov 2026): **music conversations in #listenings**. gleaner answers
 "artists connected to Milford Graves", "who mattered in 70s free jazz" from Wikipedia (links,
-infoboxes, link-back / shared-link ranking), using ctx for context (rotation, queue) and to queue picks.
+infoboxes, link-back / shared-link ranking). JC always names the artist or topic; gleaner does **not**
+read "what's on rotation" as a starting point (decided 12 Nov 2026). ctx has two jobs only: queue
+the pick JC reacts to, and mark or skip suggestions already in his queue or collection.
 **No AI in the final build** (JC's decision): every suggestion comes with the Wikipedia sentence that
 connects it. "Primer" EPUBs for cyby (a calm, finished reading pack through several articles) are **on ice**
 until the conversations work. Nothing built yet.
