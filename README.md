@@ -38,6 +38,7 @@ sleep screen; anything deleted on cyby stays deleted.
 | [`gleaner/`](gleaner/) | The Discord bot (Python). Runs on fatline as a background service (it also runs on a Mac). |
 | [`koreader/gleanings.koplugin/`](koreader/gleanings.koplugin/) | cyby's sync plugin. Copy the folder to `koreader/plugins/` on the Kindle. |
 | [`fatline/`](fatline/) | Setting up the always-on server (spare ThinkPad X200, Debian) and moving gleaner onto it. |
+| [`offgrid/`](offgrid/) | exlo off the grid: GPS from the H2T (`where.py`), later the briefing card and hotspot. |
 | [`tools/wikidict.py`](tools/wikidict.py) | Builds an offline Wikipedia dictionary for cyby from the Wikipedia `.zim` on exlo. |
 | [`tools/mobi2epub.py`](tools/mobi2epub.py) | Turns an old Kindle MOBI into a clean EPUB with a working (optionally nested) table of contents. Used for *Labyrinths*; the start of the planned #readings fixer. |
 

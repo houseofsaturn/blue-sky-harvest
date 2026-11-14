@@ -150,6 +150,9 @@ and game content stays out.
    *serial* bootloader, not the UF2 drive; the drive needs a physical double-press). Tools in
    `~/offgrid/venv` (meshcore-cli, adafruit-nrfutil). `meshcli -s /dev/ttyACM0 infos` answers
    (node name jcjcjcjc) with adv_lat/adv_lon. GPS on/off is a custom var: `get custom`, `set gps 1`.
+   **GPS fix confirmed** (14 Nov 2026: H2T clock correct after a while by the window).
+   `offgrid/where.py` (0.1.0) reads position + clock and saves `~/offgrid/state/where.json`
+   (fresh only if the H2T clock agrees with exlo's). Next: the briefing card (sun, moon first).
    Still to ask: which coast for tides. Hotspot needs the USB dongle (check its chip with `lsusb`).
 6. #readings auto-fixing books with no working table of contents (mobi2epub, Calibre).
 
