@@ -68,7 +68,7 @@ On cyby the Dropbox details are in KOReader's own cloud-storage settings.
    tappable grid squares) from OpenStreetMap data.
 3. **Save Wikipedia pictures from cyby**: a KOReader plugin that sends a picture from a
    Wikipedia lookup to #sleepy-screens, or saves it to a folder.
-4. **fatline**: set up the spare X200 (SSD, Debian), move gleaner across.
+4. ~~**fatline**: set up the spare X200, move gleaner across~~ done 14 Nov 2026.
 5. **exlo off-grid**: GPS from the H2T, exlo's own Wi-Fi so cyby can collect from it away
    from home, local map atlases, and a daily briefing card (sunrise/sunset, moon, saved
    forecast, barometer, tide tables fetched ahead).
