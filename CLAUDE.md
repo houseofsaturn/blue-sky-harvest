@@ -46,9 +46,10 @@ and game content stays out.
   `read -s "K?prompt: "` (bash's `read -p` fails there).
 - Secrets never go in this repo.
 - Push every change to GitHub as well as sending JC the file. GitHub is the master copy.
-- When sending a new gleaner.py: JC downloads it, then
-  `mv ~/Downloads/gleaner.py ~/gleaner/gleaner.py && cd ~/gleaner && bash service.sh restart`,
-  and check the log shows the new version (`grep __version__ ~/gleaner/gleaner.py`).
+- gleaner runs on **fatline** now. To deploy a change: push to GitHub, then JC runs
+  `ssh fatline`, `cd ~/blue-sky-harvest/gleaner && git pull && bash service.sh restart`,
+  and checks the status shows the new version. No more downloading gleaner.py by hand.
+  On fatline (bash) secrets prompts are `read -rs -p "Key: " K`; on the Mac (zsh) `read -s "K?prompt: "`.
 - Plugin update on cyby (plugged into the Mac):
   `rm -rf /Volumes/Kindle/koreader/plugins/gleanings.koplugin && unzip -o ~/Downloads/gleanings.koplugin.zip -d /Volumes/Kindle/koreader/plugins/`,
   verify with grep, eject, restart KOReader.
@@ -56,10 +57,12 @@ and game content stays out.
   never reveal it to JC.
 
 ## Current state (Nov 2026)
-- **gleaner 0.9.0** runs on JC's personal MacBook (repo has 0.9.1: only "Cyby" → "cyby" in
-  bot messages; deploy whenever convenient) as a launchd service
-  (`com.blueskyharvest.gleaner`, log `~/Library/Logs/gleaner.log`), `MODE=local` into
-  `~/Library/CloudStorage/Dropbox/Apps/cyby`.
+- **gleaner 0.9.1 runs on fatline** (moved 14 Nov 2026, all channels tested OK): systemd user
+  service `gleaner.service` with linger, code in `~/blue-sky-harvest/gleaner` (git clone via
+  read-only deploy key), settings in `~/.gleaner/` (copied from the personal MacBook with scp),
+  `MODE=api` (Dropbox API, existing dropbox.env worked). `bash service.sh status | log | restart`.
+  The personal MacBook's copy is uninstalled; its `~/gleaner` and `~/.gleaner` can be deleted
+  after a few calm days (keep a private backup of `~/.gleaner` if wanted).
 - Discord channels (Blue Sky Harvest): `#gleanings`, `#sleepy-screens`, `#readings`,
   `#sstacks`, `#listenings`. Env has `SCREENSAVER_CHANNEL=sleepy-screens`,
   `LISTEN_CHANNEL=listenings`; readings and sstacks are the code defaults.
@@ -97,7 +100,9 @@ and game content stays out.
   ethernet `enp0s25`; USB stick written on exlo with dd. Mac reaches both with `ssh fatline` /
   `ssh exlo` (key login, ~/.ssh/config shortcuts). Done: avahi, lid ignore, consoleblank=60,
   unattended-upgrades, contrib enabled, TLP + tp-smapi-dkms with 40/80 thresholds active
-  (needed `options thinkpad_ec force_io=1`). Next: reboot test, deploy key + clone, gleaner move.
+  (needed `options thinkpad_ec force_io=1`). Reboot test passed; deploy key + clone done;
+  gleaner moved and running. Still to do: memtest86+ overnight, SSD health (`smartctl -a`),
+  BIOS "Power On with AC Attach", genuine battery.
   Battery: fatline's is an **unbranded clone** (label 10.8 V 5200 mAh 56.2 Wh; chip claims SANYO,
   48.8 Wh, 23 cycles, so the figures are likely fake). Stuck at 36%, won't charge even with
   `tlp fullcharge` (light green). exlo had a similar problem. JC will source a genuine Lenovo
@@ -130,7 +135,7 @@ and game content stays out.
 1. Wikipedia dictionary for cyby: run `tools/wikidict.py` on exlomax (it already has the ZIM).
    **On hold until JC is back in the office** (14 Nov 2026); he chose exlomax over his MacBooks.
    Script now prints pip install hints for Mac/Windows; use `--zim D:\...\wikipedia_en_all_maxi_2026-08.zim`.
-2. Set up the X200 server (fatline) and move gleaner to it.
+2. ~~Set up fatline and move gleaner to it~~ done 14 Nov 2026. Small fatline leftovers above.
 3. Map atlases: `#maps` channel, greyscale PDF atlases from OpenStreetMap, rendered on the server.
 5. exlo off-grid: GPS from the H2T, exlo's own Wi-Fi hotspot so cyby can collect from exlo
    away from home, local maps, a daily briefing card (sunrise/sunset, moon, saved forecast,

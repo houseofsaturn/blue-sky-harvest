@@ -35,7 +35,7 @@ sleep screen; anything deleted on cyby stays deleted.
 
 | Folder | What it is |
 |---|---|
-| [`gleaner/`](gleaner/) | The Discord bot (Python). Runs on the MacBook as a background service for now; built to move to the server (fatline). |
+| [`gleaner/`](gleaner/) | The Discord bot (Python). Runs on fatline as a background service (it also runs on a Mac). |
 | [`koreader/gleanings.koplugin/`](koreader/gleanings.koplugin/) | cyby's sync plugin. Copy the folder to `koreader/plugins/` on the Kindle. |
 | [`fatline/`](fatline/) | Setting up the always-on server (spare ThinkPad X200, Debian) and moving gleaner onto it. |
 | [`tools/wikidict.py`](tools/wikidict.py) | Builds an offline Wikipedia dictionary for cyby from the Wikipedia `.zim` on exlo. |
@@ -54,10 +54,10 @@ On cyby the Dropbox details are in KOReader's own cloud-storage settings.
 ## The machines
 
 - **cyby**: Kindle Paperwhite 2 (DP75SDI), firmware 5.12.2.2, WatchThis jailbreak, KUAL, KOReader.
-- **MacBook**: runs gleaner today, saving into the Dropbox desktop folder (`MODE=local`).
+- **MacBook**: setup and heavy lifting only. (gleaner ran here until 14 Nov 2026.)
 - **exlo**: ThinkPad X200s, the semi-offline cyberdeck. Holds the full English Wikipedia (WIKISTACK).
-- **fatline** (planned): the always-on server, starting on a spare ThinkPad X200 (a Pi later
-  only if needed). Runs gleaner (`MODE=api`), keeps master copies of the big archives fresh,
+- **fatline**: the always-on server, a spare ThinkPad X200 running headless Debian 13.
+  Runs gleaner (`MODE=api`, since 14 Nov 2026); later keeps master copies of the big archives fresh,
   builds dictionaries and maps, and tops exlo up when it's home.
 
 ## What's next
