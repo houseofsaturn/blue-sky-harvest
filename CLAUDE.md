@@ -143,12 +143,14 @@ and game content stays out.
 5. exlo off-grid: GPS from the H2T, exlo's own Wi-Fi hotspot so cyby can collect from exlo
    away from home, local maps, a daily briefing card (sunrise/sunset, moon, saved forecast,
    barometer via a BME280, tide tables fetched ahead).
-   **Progress (14 Nov 2026, #off-grid):** exlo has `~/offgrid/venv` with meshcore-cli installed.
-   The H2T runs a non-USB MeshCore build (BLE companion, probably): `meshcli -s /dev/ttyACM0 infos`
-   gets no response. JC is leaning towards **H2T → exlo** (reflash with the T114 *USB serial
-   companion* .uf2: double-press reset, copy onto the drive) since the phone has its own GPS;
-   the Heltec V4 could take over as the phone's BLE board. Paused for JC to decide. Still to
-   ask: which coast for tides. Hotspot needs the USB dongle (check its chip with `lsusb`).
+   **Progress (14 Nov 2026, #off-grid):** H2T now belongs to exlo (the phone has its own GPS; the
+   Heltec V4 can be the phone's BLE board later). Reflashed over SSH to MeshCore **companion USB
+   v1.18.0** (`Heltec_t114_companion_radio_usb-v1.18.0-81dbae5.zip`) with `adafruit-nrfutil dfu
+   serial ... -p /dev/ttyACM0 -b 115200 --singlebank --touch 1200` (the 1200-baud touch opens the
+   *serial* bootloader, not the UF2 drive; the drive needs a physical double-press). Tools in
+   `~/offgrid/venv` (meshcore-cli, adafruit-nrfutil). `meshcli -s /dev/ttyACM0 infos` answers
+   (node name jcjcjcjc) with adv_lat/adv_lon. GPS on/off is a custom var: `get custom`, `set gps 1`.
+   Still to ask: which coast for tides. Hotspot needs the USB dongle (check its chip with `lsusb`).
 6. #readings auto-fixing books with no working table of contents (mobi2epub, Calibre).
 
 Idea in discussion (ctx.fm chat, 12 Nov 2026): **music conversations in #listenings**. gleaner answers
