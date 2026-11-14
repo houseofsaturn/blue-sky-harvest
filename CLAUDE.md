@@ -143,6 +143,12 @@ and game content stays out.
 5. exlo off-grid: GPS from the H2T, exlo's own Wi-Fi hotspot so cyby can collect from exlo
    away from home, local maps, a daily briefing card (sunrise/sunset, moon, saved forecast,
    barometer via a BME280, tide tables fetched ahead).
+   **Progress (14 Nov 2026, #off-grid):** exlo has `~/offgrid/venv` with meshcore-cli installed.
+   The H2T runs a non-USB MeshCore build (BLE companion, probably): `meshcli -s /dev/ttyACM0 infos`
+   gets no response. JC is leaning towards **H2T → exlo** (reflash with the T114 *USB serial
+   companion* .uf2: double-press reset, copy onto the drive) since the phone has its own GPS;
+   the Heltec V4 could take over as the phone's BLE board. Paused for JC to decide. Still to
+   ask: which coast for tides. Hotspot needs the USB dongle (check its chip with `lsusb`).
 6. #readings auto-fixing books with no working table of contents (mobi2epub, Calibre).
 
 Idea in discussion (ctx.fm chat, 12 Nov 2026): **music conversations in #listenings**. gleaner answers
