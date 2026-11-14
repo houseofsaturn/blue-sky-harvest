@@ -86,6 +86,10 @@ and game content stays out.
   **no AP mode** (only IBSS/managed/monitor, and Kindles can't join ad-hoc), so exlo's own
   network for cyby needs a USB Wi-Fi dongle with AP support (AR9271 / ath9k_htc preferred);
   the 5300 stays as the upstream client. The H2T shows up as `/dev/ttyACM0`.
+  Lid (14 Nov 2026): `/etc/systemd/logind.conf` had `HandleLidSwitch=ignore` (and on mains);
+  overridden by `/etc/systemd/logind.conf.d/99-exlo-lid.conf` → suspend on lid-close, battery
+  or mains. Revisit when the hotspot exists (exlo may need to stay awake, lid shut, serving cyby).
+  Fan: idles ~2400 RPM in `auto` at ~37 °C (normal); `thinkfan` / a clean are options.
 - **The server ("fatline")**: decided to start with JC's spare **ThinkPad X200** (in his
   office) instead of a Pi: free, exlo's twin, battery as a UPS, easy to move. Needs a
   2.5" SATA SSD (500 GB–1 TB), Debian, TLP battery limits, lid-closed. Then gleaner moves
