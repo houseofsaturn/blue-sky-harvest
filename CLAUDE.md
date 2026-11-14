@@ -105,11 +105,11 @@ and game content stays out.
   on his work MacBook; he's advised to move it to a phone authenticator app.
 
 ## Next
-1. Wikipedia dictionary for cyby: run `tools/wikidict.py` on exlomax (fastest; it already
-   has the ZIM), exlo or the server.
+1. Wikipedia dictionary for cyby: run `tools/wikidict.py` on exlomax (it already has the ZIM).
+   **On hold until JC is back in the office** (14 Nov 2026); he chose exlomax over his MacBooks.
+   Script now prints pip install hints for Mac/Windows; use `--zim D:\...\wikipedia_en_all_maxi_2026-08.zim`.
 2. Set up the X200 server (fatline) and move gleaner to it.
 3. Map atlases: `#maps` channel, greyscale PDF atlases from OpenStreetMap, rendered on the server.
-4. Save Wikipedia pictures from cyby (KOReader plugin → #sleepy-screens via webhook, or a folder).
 5. exlo off-grid: GPS from the H2T, exlo's own Wi-Fi hotspot so cyby can collect from exlo
    away from home, local maps, a daily briefing card (sunrise/sunset, moon, saved forecast,
    barometer via a BME280, tide tables fetched ahead).
@@ -136,7 +136,8 @@ sentence. Tests: `tools/tests/test_connections.py` (made-up music archive + cras
 3,821 climate-mini articles, 0 errors). Not yet run on the full Wikipedia: next is JC running it on
 **exlo** (has python3-libzim, lxml and the maxi ZIM in ~/zim; repo via `gh repo clone`), then tune.
 
-Parked: iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
+Parked: saving Wikipedia pictures from cyby (KOReader plugin → #sleepy-screens or a folder;
+on ice, 14 Nov 2026); iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
 reading-notes forum; weekly reading note; WIKISTACK daily cards on cyby; SSH to cyby (timed
 out, unresolved); Winlink / amateur radio (JC wants a Foundation licence some day);
 Calibre wireless to KOReader.
