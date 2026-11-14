@@ -149,6 +149,17 @@ sentence. Tests: `tools/tests/test_connections.py` (made-up music archive + cras
 3,821 climate-mini articles, 0 errors). Not yet run on the full Wikipedia: next is JC running it on
 **exlo** (has python3-libzim, lxml and the maxi ZIM in ~/zim; repo via `gh repo clone`), then tune.
 
+Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
+cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
+gleanings plugin drops it in the Dropbox app folder and gleaner posts it to its own Discord channel
+(quote, note, title, link to the original via the EPUB's DC:source, Wikipedia search link); react ✅
+when done. Only what JC taps is sent, never all highlights. **gleaner is the one tool** (JC): this is
+gleaner working in the other direction, not a new tool; channels are doors into gleaner, and this one is
+separate from #gleanings because the job differs. Names are **undecided**: placeholders are button
+"Look up later", channel `#lookups`, folder `lookups/`. JC is unsure "glean" is the right word for it;
+rejected so far: seek/#seekings, harvest words (#sheaves, #threshing…), #marginalia, Snow Crash nouns
+(#hypercards, #intel). Reading-notes button comes later, on the same pipe. **Not built yet.**
+
 Parked: saving Wikipedia pictures from cyby (KOReader plugin → #sleepy-screens or a folder;
 on ice, 14 Nov 2026); iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
 reading-notes forum; weekly reading note; WIKISTACK daily cards on cyby; SSH to cyby (timed
