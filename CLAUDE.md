@@ -93,6 +93,11 @@ and game content stays out.
   health with `smartctl -a` after install. Spares: the 128 GB from the X200, several SanDisk
   250 GB SSDs (could go in USB cases for backups), a LaCie Rugged Mini (USB, probably a spinning
   disk; archives only, spin-down when idle, would be reformatted).
+  **Build progress (14 Nov 2026):** Debian 13.7 (trixie) netinst installed, headless, user `jc`,
+  ethernet `enp0s25`; USB stick written on exlo with dd. Mac reaches both with `ssh fatline` /
+  `ssh exlo` (key login, ~/.ssh/config shortcuts). Done: avahi, lid ignore, consoleblank=60,
+  unattended-upgrades, contrib enabled, TLP + tp-smapi-dkms with 40/80 thresholds active
+  (needed `options thinkpad_ec force_io=1`). Next: reboot test, deploy key + clone, gleaner move.
   Software side ready (11 Nov 2026): step-by-step guide in `fatline/README.md` (Debian netinst,
   no desktop, SSH as `fatline.local` via avahi, lid ignore, consoleblank, unattended-upgrades,
   TLP 40/80 via tp-smapi-dkms, read-only GitHub deploy key, `scp -r ~/.gleaner`),

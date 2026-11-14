@@ -96,18 +96,25 @@ sudo update-grub
 Security updates install themselves:
 ```bash
 sudo apt install -y unattended-upgrades
-sudo dpkg-reconfigure -plow unattended-upgrades       # answer Yes
+echo 'unattended-upgrades unattended-upgrades/enable_auto_updates boolean true' | sudo debconf-set-selections
+sudo dpkg-reconfigure -f noninteractive unattended-upgrades
 ```
 
 Battery care: keep it between 40% and 80% so it lasts for years as a UPS. The X200 needs the
 `tp_smapi` driver for charge limits, which is in Debian's **contrib** section:
 ```bash
-sudo sed -i 's/ main\b/ main contrib/' /etc/apt/sources.list   # if your sources use a .sources file, see note below
+sudo sed -i '/^deb/ s/ main non-free-firmware/ main contrib non-free-firmware/' /etc/apt/sources.list
 sudo apt update
 sudo apt install -y tlp linux-headers-amd64 tp-smapi-dkms
 printf 'START_CHARGE_THRESH_BAT0=40\nSTOP_CHARGE_THRESH_BAT0=80\n' | sudo tee /etc/tlp.d/50-fatline.conf
-sudo tlp start && sudo tlp-stat -b | grep -i thresh
+echo 'options thinkpad_ec force_io=1' | sudo tee /etc/modprobe.d/thinkpad_ec.conf
+echo 'tp_smapi' | sudo tee /etc/modules-load.d/tp_smapi.conf
+sudo modprobe -r tp_smapi thinkpad_ec 2>/dev/null; sudo modprobe tp_smapi
+sudo tlp start && sudo tlp-stat -b | grep -iE "thresh|tp_smapi"
 ```
+`force_io=1` is needed on Debian 13's kernel (6.12): without it `thinkpad_ec` logs
+"cannot claim IO ports 0x1600-0x161f" and tp_smapi won't load (found on fatline, 14 Nov 2026).
+You want `tp_smapi = active` and 40 / 80 in the smapi lines.
 Note: if `/etc/apt/sources.list` is empty and there's a file in `/etc/apt/sources.list.d/`
 ending in `.sources` instead, ask in the fatline chat and we'll edit that.
 
