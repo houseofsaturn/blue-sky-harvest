@@ -82,7 +82,10 @@ and game content stays out.
 
 ## Machines
 - **exlo**: ThinkPad X200s, Debian + NsCDE, 480 GB SSD, full English Wikipedia ZIM for
-  WIKISTACK. The off-grid cyberdeck.
+  WIKISTACK. The off-grid cyberdeck. Python 3.13.5. Wi-Fi is an Intel 5300 (iwlwifi):
+  **no AP mode** (only IBSS/managed/monitor, and Kindles can't join ad-hoc), so exlo's own
+  network for cyby needs a USB Wi-Fi dongle with AP support (AR9271 / ath9k_htc preferred);
+  the 5300 stays as the upstream client. The H2T shows up as `/dev/ttyACM0`.
 - **The server ("fatline")**: decided to start with JC's spare **ThinkPad X200** (in his
   office) instead of a Pi: free, exlo's twin, battery as a UPS, easy to move. Needs a
   2.5" SATA SSD (500 GB–1 TB), Debian, TLP battery limits, lid-closed. Then gleaner moves
