@@ -124,7 +124,7 @@ and game content stays out.
   Harvest's infrastructure**: only for heavy one-off processing during the build (e.g. the
   Wikipedia dictionary, map rendering). Nothing should depend on it running. Specs come
   from the WIKISTACK repo (docs/HANDOVER.md).
-- **H2T**: Heltec T114 Meshtastic node with GPS. Mesh messaging rejected; GPS for exlo is the use.
+- **H2T**: Heltec T114 with GPS, running **MeshCore** (not Meshtastic; read it with meshcore-cli / the `meshcore` Python package). Mesh messaging rejected; GPS for exlo is the use.
 - **Heltec WiFi LoRa 32 V4** dev kit with antenna (ESP32-S3, LoRa, OLED): spare, no job yet.
   Parked with the H2T for #off-grid; maybe a small gleaner status display for fatline one day.
 - **USB dual-band Wi-Fi adapter** ("600 Mbps", chipset unknown): for exlo's own hotspot for
