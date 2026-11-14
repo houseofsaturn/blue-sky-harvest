@@ -84,11 +84,10 @@ and game content stays out.
   office) instead of a Pi: free, exlo's twin, battery as a UPS, easy to move. Needs a
   2.5" SATA SSD (500 GB–1 TB), Debian, TLP battery limits, lid-closed. Then gleaner moves
   there with `MODE=api` and the Mac copy is uninstalled. Pi only if power or noise bothers him.
-  Waiting on: RAM and drive size of the X200.
-  RAM (Nov 2026): X200 takes DDR3 SO-DIMM, 1.5 V, PC3-8500/10600 (8 GB = 2x4 GB works
-  unofficially); avoid PC3L/DDR3L. JC has two free pairs: 2x 4 GB DDR3-1333 (make unknown;
-  try first if the label says PC3-10600S, not PC3L) and 2x Kingston KTA-MB1600S/4G
-  (MacBook DDR3-1600, 1.5 V; backup, hit-and-miss at 1066). Run memtest86+ once Debian is on.
+  Hardware checked (14 Nov 2026): **8 GB RAM** (2x 4 GB DDR3-1333 fitted, shows 7.7 GiB) and a
+  **128 GB SSD** (119.2 GiB) already in it; was running Ubuntu Studio. 128 GB is plenty for
+  gleaner; a bigger SSD only when big archives / map data need it. Spare: 2x Kingston
+  KTA-MB1600S/4G. Run memtest86+ once Debian is on.
   Software side ready (11 Nov 2026): step-by-step guide in `fatline/README.md` (Debian netinst,
   no desktop, SSH as `fatline.local` via avahi, lid ignore, consoleblank, unattended-upgrades,
   TLP 40/80 via tp-smapi-dkms, read-only GitHub deploy key, `scp -r ~/.gleaner`),
