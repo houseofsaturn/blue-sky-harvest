@@ -88,6 +88,11 @@ and game content stays out.
   **128 GB SSD** (119.2 GiB) already in it; was running Ubuntu Studio. 128 GB is plenty for
   gleaner; a bigger SSD only when big archives / map data need it. Spare: 2x Kingston
   KTA-MB1600S/4G. Run memtest86+ once Debian is on.
+  Drive plan (14 Nov 2026): fit JC's spare **SanDisk Extreme II 480 GB** (SDSSDXP, 2.5" SATA)
+  inside *before* installing Debian, since fatline will hold archives / backups. Check its
+  health with `smartctl -a` after install. Spares: the 128 GB from the X200, several SanDisk
+  250 GB SSDs (could go in USB cases for backups), a LaCie Rugged Mini (USB, probably a spinning
+  disk; archives only, spin-down when idle, would be reformatted).
   Software side ready (11 Nov 2026): step-by-step guide in `fatline/README.md` (Debian netinst,
   no desktop, SSH as `fatline.local` via avahi, lid ignore, consoleblank, unattended-upgrades,
   TLP 40/80 via tp-smapi-dkms, read-only GitHub deploy key, `scp -r ~/.gleaner`),
