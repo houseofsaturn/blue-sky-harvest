@@ -85,6 +85,10 @@ and game content stays out.
   2.5" SATA SSD (500 GB–1 TB), Debian, TLP battery limits, lid-closed. Then gleaner moves
   there with `MODE=api` and the Mac copy is uninstalled. Pi only if power or noise bothers him.
   Waiting on: RAM and drive size of the X200.
+  RAM (Nov 2026): X200 takes DDR3 SO-DIMM, 1.5 V, PC3-8500/10600 (8 GB = 2x4 GB works
+  unofficially); avoid PC3L/DDR3L. JC has two free pairs: 2x 4 GB DDR3-1333 (make unknown;
+  try first if the label says PC3-10600S, not PC3L) and 2x Kingston KTA-MB1600S/4G
+  (MacBook DDR3-1600, 1.5 V; backup, hit-and-miss at 1066). Run memtest86+ once Debian is on.
   Software side ready (11 Nov 2026): step-by-step guide in `fatline/README.md` (Debian netinst,
   no desktop, SSH as `fatline.local` via avahi, lid ignore, consoleblank, unattended-upgrades,
   TLP 40/80 via tp-smapi-dkms, read-only GitHub deploy key, `scp -r ~/.gleaner`),
@@ -100,6 +104,11 @@ and game content stays out.
   Wikipedia dictionary, map rendering). Nothing should depend on it running. Specs come
   from the WIKISTACK repo (docs/HANDOVER.md).
 - **H2T**: Heltec T114 Meshtastic node with GPS. Mesh messaging rejected; GPS for exlo is the use.
+- **Heltec WiFi LoRa 32 V4** dev kit with antenna (ESP32-S3, LoRa, OLED): spare, no job yet.
+  Parked with the H2T for #off-grid; maybe a small gleaner status display for fatline one day.
+- **USB dual-band Wi-Fi adapter** ("600 Mbps", chipset unknown): for exlo's own hotspot for
+  cyby (second card, so exlo can stay connected while serving cyby). Check the chip with
+  `lsusb` on exlo before relying on it. Not needed on fatline (ethernet + built-in Wi-Fi).
 - **iPod** (generation unknown, check model number A1136 / A1238): idea is Rockbox + SD mod.
 - GitHub account houseofsaturn (repos: wikistack, blue-sky-harvest). JC's 2FA currently lives
   on his work MacBook; he's advised to move it to a phone authenticator app.
