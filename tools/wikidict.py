@@ -17,7 +17,8 @@ second run needs no download), adds them up, and keeps the most-read articles.
 Output: a folder (e.g. ~/wikidict/Wikipedia 100k) holding a StarDict
 dictionary. Copy that folder into koreader/data/dict/ on cyby.
 
-Needs: python3, python3-libzim, python3-lxml (all already used by WIKISTACK).
+Needs: python3, libzim, lxml (Debian: apt python3-libzim python3-lxml; Mac: pip3 install libzim lxml).
+Works with any English Wikipedia .zim; the small "mini" one (intros only, ~16 GB) is enough.
 Text from Wikipedia, CC BY-SA 4.0.
 """
 
@@ -37,11 +38,11 @@ import zlib
 try:
     from libzim.reader import Archive
 except ImportError:
-    sys.exit("wikidict: needs libzim.  sudo apt install python3-libzim")
+    sys.exit("wikidict: needs libzim.  Debian: sudo apt install python3-libzim   Mac/Windows: pip3 install libzim")
 try:
     import lxml.html
 except ImportError:
-    sys.exit("wikidict: needs lxml.  sudo apt install python3-lxml")
+    sys.exit("wikidict: needs lxml.  Debian: sudo apt install python3-lxml   Mac/Windows: pip3 install lxml")
 
 VERSION = "1.0"
 HOME = os.path.expanduser("~")
