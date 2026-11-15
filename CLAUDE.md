@@ -124,6 +124,12 @@ and game content stays out.
   opened; disable key expiry for fatline); JC wants to **migrate to Headscale** (self-hosted
   coordination server) when the time is right. Possible extra: a `!fatline` status command in
   Discord via gleaner.
+  **Tailscale set up (15 Nov 2026):** fatline (100.90.163.115) and the personal MacBook joined
+  (tailnet login chosen by JC; fatline needed `apt install curl` first; the Mac app's sign-in
+  button did nothing, so `/Applications/Tailscale.app/Contents/MacOS/Tailscale up` gave the link).
+  Personal MacBook: `ssh fatline` → HostName `fatline` (MagicDNS), works anywhere. Still to do:
+  disable key expiry for fatline (admin console), Tailscale on the work laptop (and repoint its
+  `fatline.local` shortcut to `fatline`), Tailscale on exlo.
   Battery: fatline's is an **unbranded clone** (label 10.8 V 5200 mAh 56.2 Wh; chip claims SANYO,
   48.8 Wh, 23 cycles, so the figures are likely fake). Stuck at 36%, won't charge even with
   `tlp fullcharge` (light green). exlo had a similar problem. JC will source a genuine Lenovo

@@ -200,6 +200,26 @@ Gleanings → Sync now. Check #sleepy-screens, #readings, #sstacks (`!list`, `!c
 `~/.gleaner` on the Mac can go (fatline has the master copy of the settings; GitHub has
 the code). Back up `~/.gleaner` somewhere private first if you like.
 
+## Reaching fatline from anywhere (Tailscale)
+
+fatline lives at the gallery, so it joins a private Tailscale network (outbound only: no ports
+opened on the work network). Later this can move to a self-hosted Headscale server.
+
+On fatline: `sudo apt install -y curl`, then `curl -fsSL https://tailscale.com/install.sh | sh`
+and `sudo tailscale up` (open the link, sign in). In the admin console
+(login.tailscale.com/admin/machines) set fatline to **Disable key expiry**, or it drops off
+after a few months with nobody there to sign in again.
+
+On each Mac: install the app from tailscale.com/download, sign in with the **same** account
+(if the sign-in button does nothing: `/Applications/Tailscale.app/Contents/MacOS/Tailscale up`
+prints the link). Then point the shortcut at the Tailscale name:
+```
+Host fatline
+  HostName fatline
+  User jc
+```
+On exlo: the same three commands as fatline.
+
 ## The `fatline` command
 
 A small command language for fatline, written to teach: each job prints the real
