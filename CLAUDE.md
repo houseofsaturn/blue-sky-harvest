@@ -113,8 +113,11 @@ and game content stays out.
   Total_Bad_Block 582, watch it doesn't grow; 810 past unexpected power losses); smartd now
   monitors it. BIOS has **no** "Power On with AC Attach" (only SpeedStep "Mode for AC/battery"),
   so after a long power cut fatline stays off until the power button is pressed. Still to do:
-  genuine battery. Ideas JC liked: a login screen (motd) showing what gleaner delivered since
-  last login, a `fatline` command, btop (tried on exlo first), Gemini/w3m small-web browsing.
+  genuine battery. btop installed (15 Nov 2026). **`fatline` command** (`fatline/fatline`, bash,
+  0.1.0, linked into `~/.local/bin`): status, recent, today, log, restart, update, health, learn;
+  each job echoes the real commands in grey, because JC wants to *learn* the command line from
+  it (keep that teaching style when extending it). Ideas JC liked, not built: a login screen
+  (motd) showing what gleaner delivered since last login, Gemini/w3m small-web browsing.
   Battery: fatline's is an **unbranded clone** (label 10.8 V 5200 mAh 56.2 Wh; chip claims SANYO,
   48.8 Wh, 23 cycles, so the figures are likely fake). Stuck at 36%, won't charge even with
   `tlp fullcharge` (light green). exlo had a similar problem. JC will source a genuine Lenovo

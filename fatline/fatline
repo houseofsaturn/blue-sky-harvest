@@ -1,0 +1,159 @@
+#!/bin/bash
+# ─────────────────────────────────────────────────────────────────────────────
+#  fatline: talk to fatline in its own small language.
+#
+#    fatline              the list of commands (same as: fatline help)
+#    fatline status       how fatline and gleaner are doing
+#    fatline recent [N]   the last N things gleaner delivered (default 10)
+#    fatline today        how many things gleaner delivered today
+#    fatline log          watch gleaner's log live (Ctrl+C to stop watching)
+#    fatline restart      restart gleaner
+#    fatline update       fetch the latest code from GitHub, restart gleaner
+#    fatline health       the SSD's health report, short version
+#    fatline learn        one command-line tip
+#
+#  Every job prints the real command(s) it runs, in grey, before it runs them:
+#  fatline is a set of training wheels, not a black box. Read this file too.
+#  It lives in ~/blue-sky-harvest/fatline/fatline, so `fatline update` updates it.
+# ─────────────────────────────────────────────────────────────────────────────
+
+REPO="$HOME/blue-sky-harvest"
+GLEANER="$REPO/gleaner"
+VERSION="0.1.0"
+
+# Colours. "\e[2m" is an escape code: it tells the terminal "dim text from here".
+# "\e[0m" means "back to normal". Terminals have understood these since the 1970s.
+DIM=$'\e[2m'; BOLD=$'\e[1m'; GREEN=$'\e[32m'; RED=$'\e[31m'; CYAN=$'\e[36m'; OFF=$'\e[0m'
+
+# show: print a command in grey, then run it. This is how fatline teaches.
+show() {
+  printf '%s→ %s%s\n' "$DIM" "$*" "$OFF"
+  eval "$@"
+}
+
+# say: print a heading in cyan.
+say() { printf '\n%s%s%s\n' "$CYAN$BOLD" "$*" "$OFF"; }
+
+cmd_help() {
+  cat <<EOF
+${BOLD}fatline${OFF} ${DIM}$VERSION${OFF}, the always-on server of Blue Sky Harvest
+
+  ${BOLD}fatline status${OFF}       how fatline and gleaner are doing
+  ${BOLD}fatline recent${OFF} [N]   the last N things gleaner delivered
+  ${BOLD}fatline today${OFF}        how many things gleaner delivered today
+  ${BOLD}fatline log${OFF}          watch gleaner's log live (Ctrl+C stops watching)
+  ${BOLD}fatline restart${OFF}      restart gleaner
+  ${BOLD}fatline update${OFF}       latest code from GitHub, then restart gleaner
+  ${BOLD}fatline health${OFF}       the SSD's health, short version
+  ${BOLD}fatline learn${OFF}        one command-line tip
+
+${DIM}Each job shows the real commands it runs, in grey. Try them yourself.${OFF}
+EOF
+}
+
+cmd_status() {
+  say "fatline"
+  show 'uptime -p'                                  # how long since the last start
+  show 'free -h | grep Mem'                         # memory: total, used, free
+  show 'df -h / | tail -1'                          # disk: size, used, free, %
+  # The kernel publishes live readings as tiny text files under /sys.
+  # Temperature is in thousandths of a degree, so 43000 means 43 °C.
+  show 'echo "temp $(( $(cat /sys/class/thermal/thermal_zone0/temp) / 1000 )) °C"'
+  show 'echo "battery $(cat /sys/class/power_supply/BAT0/capacity 2>/dev/null || echo "?")% ($(cat /sys/class/power_supply/BAT0/status 2>/dev/null || echo "no battery"))"'
+
+  say "gleaner"
+  # systemctl --user talks to *your* services (as opposed to the system's).
+  if systemctl --user is-active --quiet gleaner; then
+    printf '%s🌾 running%s\n' "$GREEN" "$OFF"
+  else
+    printf '%s💤 not running%s (try: fatline restart)\n' "$RED" "$OFF"
+  fi
+  show 'systemctl --user show gleaner -p ActiveEnterTimestamp --value'   # since when
+  show "grep -m1 __version__ $GLEANER/gleaner.py"
+}
+
+cmd_recent() {
+  local n="${1:-10}"
+  say "last $n deliveries"
+  # journalctl reads the system's log book. -u picks one service; -o cat drops the
+  # clutter; grep keeps only delivery lines; tail keeps the last N; sed tidies each line
+  # (it swaps "2026-11-15 08:51:07,123 INFO gleaner: " for just "2026-11-15 08:51  ").
+  show "journalctl --user -u gleaner -o cat --no-pager | grep -E 'delivered|ctx.fm' | tail -n $n | sed -E 's/:[0-9]{2},[0-9]+ INFO gleaner: /  /'"
+}
+
+cmd_today() {
+  say "delivered today"
+  # --since today: only today's log. grep -c counts matching lines instead of showing them.
+  show "journalctl --user -u gleaner -o cat --no-pager --since today | grep -cE 'delivered|ctx.fm'"
+}
+
+cmd_log()     { show "journalctl --user -u gleaner -n 30 -f -o cat"; }
+cmd_restart() { show "cd $GLEANER && bash service.sh restart"; }
+
+cmd_update() {
+  say "fetching the latest from GitHub"
+  # git pull: download new commits and apply them. --ff-only refuses anything messy.
+  show "git -C $REPO pull --ff-only"
+  say "restarting gleaner"
+  show "cd $GLEANER && bash service.sh restart"
+}
+
+cmd_health() {
+  say "SSD health"
+  # smartctl asks the drive itself. sudo because only the admin may talk to disks directly.
+  # awk picks columns from each line: $2 is the name, $10 the raw value.
+  show "sudo smartctl -H /dev/sda | grep result"
+  show "sudo smartctl -A /dev/sda | awk '\$1==5||\$1==9||\$1==169||\$1==173||\$1==187||\$1==194||\$1==232 {print \$2, \$10}'"
+  printf '%sReallocated, Reported_Uncorrect: want 0. Total_Bad_Block: started at 582 (Nov 2026), shouldn'"'"'t grow.\nAvg_Write/Erase_Count: wear (was 33; thousands is old age). Perc_Avail_Resrvd_Space: want 100.%s\n' "$DIM" "$OFF"
+}
+
+cmd_learn() {
+  # A small deck of tips. shuf -n1 deals one at random.
+  local tips=(
+    "pwd                       where am I? (print working directory)"
+    "ls -lh                    list this folder, with sizes people can read (-h = human)"
+    "cd ~                      go home. ~ always means your home folder; cd - goes back"
+    "cat file.txt              print a file. less file.txt lets you scroll (q quits)"
+    "history | tail            your last commands. !! repeats the last one"
+    "Ctrl+R                    search your command history: type a few letters"
+    "Tab                       finish a filename or command for you. Press twice for choices"
+    "Ctrl+C                    stop what's running. Ctrl+L clears the screen"
+    "man ls                    the manual for any command (q quits, / searches)"
+    "cmd | grep word           | (pipe) feeds one command's output into the next"
+    "cmd > file.txt            > saves output to a file (overwrites); >> adds to the end"
+    "du -sh ~/*                how much space each thing in your home folder uses"
+    "df -h                     how full each disk is"
+    "free -h                   memory in use"
+    "uptime                    how long since the last start, and how busy"
+    "who                       who is logged in right now"
+    "ip -br addr               fatline's network addresses"
+    "ping -c 3 debian.org      is the internet there? (-c 3 = three tries)"
+    "journalctl -b -p warning  this boot's warnings and errors"
+    "systemctl --user status gleaner   the full story of gleaner's service"
+    "sudo apt update && sudo apt upgrade   fetch and install updates by hand"
+    "nano file.txt             a simple text editor. Ctrl+O saves, Ctrl+X quits"
+    "mkdir notes               make a folder. rmdir removes an empty one"
+    "cp a b / mv a b           copy / move (or rename). Careful: rm deletes for good"
+    "find ~ -name '*.epub'     find files by name"
+    "wc -l file.txt            count lines in a file"
+    "head -5 / tail -5 file    the first / last five lines"
+    "echo \$PATH               the folders your shell searches for commands"
+    "type fatline              where a command lives (fatline is a link into the repo)"
+    "less ~/blue-sky-harvest/fatline/fatline   read fatline's own source"
+  )
+  printf '%s💡 %s%s\n' "$BOLD" "$(printf '%s\n' "${tips[@]}" | shuf -n1)" "$OFF"
+}
+
+# Dispatch: the first word after "fatline" picks the job; the rest is passed along.
+case "${1:-help}" in
+  help|-h|--help) cmd_help ;;
+  status)  cmd_status ;;
+  recent)  shift; cmd_recent "$@" ;;
+  today)   cmd_today ;;
+  log)     cmd_log ;;
+  restart) cmd_restart ;;
+  update)  cmd_update ;;
+  health)  cmd_health ;;
+  learn)   cmd_learn ;;
+  *) printf "fatline doesn't know '%s' yet.\n\n" "$1"; cmd_help; exit 1 ;;
+esac

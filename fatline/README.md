@@ -200,7 +200,18 @@ Gleanings → Sync now. Check #sleepy-screens, #readings, #sstacks (`!list`, `!c
 `~/.gleaner` on the Mac can go (fatline has the master copy of the settings; GitHub has
 the code). Back up `~/.gleaner` somewhere private first if you like.
 
-## Everyday use
+## The `fatline` command
+
+A small command language for fatline, written to teach: each job prints the real
+commands it runs (in grey) before running them. Install once, on fatline:
+```bash
+mkdir -p ~/.local/bin && ln -sf ~/blue-sky-harvest/fatline/fatline ~/.local/bin/fatline
+```
+then log out and back in (`exit`, `ssh fatline`). `fatline` on its own lists the commands:
+`status`, `recent [N]`, `today`, `log`, `restart`, `update`, `health`, `learn`.
+It's a link into the repo, so `fatline update` updates fatline itself too.
+
+## Everyday use (the long way)
 
 All on fatline (`ssh fatline`, then `cd ~/blue-sky-harvest/gleaner`):
 
