@@ -108,12 +108,17 @@ and game content stays out.
   `ssh exlo` (key login, ~/.ssh/config shortcuts). Done: avahi, lid ignore, consoleblank=60,
   unattended-upgrades, contrib enabled, TLP + tp-smapi-dkms with 40/80 thresholds active
   (needed `options thinkpad_ec force_io=1`). Reboot test passed; deploy key + clone done;
-  gleaner moved and running. Still to do: memtest86+ overnight, SSD health (`smartctl -a`),
-  BIOS "Power On with AC Attach", genuine battery.
+  gleaner moved and running. **Checks done (14–15 Nov 2026):** memtest86+ 3 full passes, 0 errors
+  (~10 h); SSD SMART PASSED (0 reallocated, avg erase count 33, spare 100%, 1,076 h; baseline
+  Total_Bad_Block 582, watch it doesn't grow; 810 past unexpected power losses); smartd now
+  monitors it. BIOS has **no** "Power On with AC Attach" (only SpeedStep "Mode for AC/battery"),
+  so after a long power cut fatline stays off until the power button is pressed. Still to do:
+  genuine battery. Ideas JC liked: a login screen (motd) showing what gleaner delivered since
+  last login, a `fatline` command, btop (tried on exlo first), Gemini/w3m small-web browsing.
   Battery: fatline's is an **unbranded clone** (label 10.8 V 5200 mAh 56.2 Wh; chip claims SANYO,
   48.8 Wh, 23 cycles, so the figures are likely fake). Stuck at 36%, won't charge even with
   `tlp fullcharge` (light green). exlo had a similar problem. JC will source a genuine Lenovo
-  battery (fits X200 and X200s); fatline runs on mains meanwhile (BIOS "Power On with AC Attach").
+  battery (fits X200 and X200s); fatline runs on mains meanwhile.
   Software side ready (11 Nov 2026): step-by-step guide in `fatline/README.md` (Debian netinst,
   no desktop, SSH as `fatline.local` via avahi, lid ignore, consoleblank, unattended-upgrades,
   TLP 40/80 via tp-smapi-dkms, read-only GitHub deploy key, `scp -r ~/.gleaner`),
