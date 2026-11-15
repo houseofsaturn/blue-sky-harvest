@@ -118,6 +118,12 @@ and game content stays out.
   each job echoes the real commands in grey, because JC wants to *learn* the command line from
   it (keep that teaching style when extending it). Ideas JC liked, not built: a login screen
   (motd) showing what gleaner delivered since last login, Gemini/w3m small-web browsing.
+  **Location / remote access (15 Nov 2026):** fatline will live in JC's **office at the gallery**
+  (work network; advised to check with IT, ideally a guest network/segment: fatline only needs
+  outbound internet). Remote access: **Tailscale** for the Mac and exlo (outbound only, no ports
+  opened; disable key expiry for fatline); JC wants to **migrate to Headscale** (self-hosted
+  coordination server) when the time is right. Possible extra: a `!fatline` status command in
+  Discord via gleaner.
   Battery: fatline's is an **unbranded clone** (label 10.8 V 5200 mAh 56.2 Wh; chip claims SANYO,
   48.8 Wh, 23 cycles, so the figures are likely fake). Stuck at 36%, won't charge even with
   `tlp fullcharge` (light green). exlo had a similar problem. JC will source a genuine Lenovo
