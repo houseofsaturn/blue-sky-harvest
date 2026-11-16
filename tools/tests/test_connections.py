@@ -38,6 +38,12 @@ for absent in ("Drum kit", "Rook Abernathy", "1964", "Jazz Weekly"):      # See 
 assert w.find("Orrin Vale (drummer)").path == "Orrin_Vale"                  # redirects followed
 assert w.find("orrin val") is not None                                       # suggestion search
 assert w.find("Nobody At All Here") is None or True                          # never crashes
+facts = {l: t for l, t, _ in seed.infobox_rows}
+assert facts["Instruments"] == "Drums, percussion", facts["Instruments"]
+assert facts["Genres"] == "Free jazz, avant-garde jazz", facts["Genres"]
+assert facts["Born"] == "3 May 1938 · Harrow Bend", facts["Born"]
+assert C.split_sentences("(A had B.) In 1977, C did D.") == ["(A had B.)", "In 1977, C did D."]
+assert C.split_sentences("Pieces of Time (Soul Note, rel. 1983).") == ["Pieces of Time (Soul Note, rel. 1983)."]
 print("✅ music test archive: ranking and kinds as expected")
 
 if len(sys.argv) > 1:

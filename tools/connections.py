@@ -51,7 +51,7 @@ try:
 except ImportError:
     sys.exit("connections: needs lxml.  exlo: sudo apt install python3-lxml   other: pip install lxml")
 
-VERSION = "0.1"
+VERSION = "0.2"
 
 # ---------------------------------------------------------------- what to skip (from WIKISTACK's parser)
 SKIP_CLASS = {"mw-editsection", "navbox", "navbox-styles", "metadata", "noprint", "sidebar", "ambox", "hatnote",
@@ -75,8 +75,8 @@ REFMARK = re.compile(r"\[(?:\d+|[a-z]|note \d+|citation needed)\]")
 HREF = re.compile(rb'<a\s[^>]*?href="([^"#?]+)', re.I)
 WS = re.compile(r"\s+")
 # a sentence ends at . ! ? followed by space and a capital/quote/digit; not after common abbreviations
-SENT_END = re.compile(r'(?<=[.!?])\s+(?=["“(\[A-Z0-9])')
-ABBREV = re.compile(r"(?:\b(?:Jr|Sr|Dr|Mr|Ms|Mrs|St|No|Vol|vs|ca|c|Mt|Ft|Bros|Co|Inc|Ltd|feat)|\b[A-Z])\.$")
+SENT_END = re.compile(r'(?:(?<=[.!?])|(?<=[.!?][)"”’\]]))\s+(?=["“(\[A-Z0-9])')
+ABBREV = re.compile(r"(?:\b(?:Jr|Sr|Dr|Mr|Ms|Mrs|St|No|Vol|vs|ca|c|Mt|Ft|Bros|Co|Inc|Ltd|feat|rel|approx|ed|eds|trans|pp|p|vol|op|nos?)|\b[A-Z])\.$")
 
 
 def split_sentences(text: str) -> list:
@@ -271,10 +271,19 @@ class Article:
                 continue
             label = norm(cells[0].text_content())
             val = cells[1]
+            for el in list(val.iter()):
+                if isinstance(el.tag, str) and el.getparent() is not None and (
+                        el.tag in SKIP_TAGS or classes(el) & (SKIP_CLASS | {"bday", "dtstart", "published"})
+                        or "display:none" in (el.get("style") or "").replace(" ", "")):
+                    el.drop_tree()
             for br in val.iter("br"):
                 br.tail = " · " + (br.tail or "")
+            for li in val.iter("li"):
+                if li.getprevious() is not None:
+                    li.text = ", " + (li.text or "")
             links = [p for a in val.iter("a") if (p := resolve(self.base, a.get("href")))]
-            text = norm(val.text_content())
+            text = REFMARK.sub("", norm(val.text_content()))
+            text = re.sub(r"\(\d{4}-\d{2}-\d{2}\)\s*", "", text).strip(" ·,")
             if label:
                 self.infobox_rows.append((label, text, links))
 
@@ -313,7 +322,7 @@ class Article:
                 sent = next((s for s in sents if anchor and anchor in s), sents[0] if sents else text)
                 lst = self.mentions.setdefault(p, [])
                 if all(sent != x[1] for x in lst):
-                    lst.append((section or "(opening)", sent, lead))
+                    lst.append((section or "(opening)", sent, lead, anchor))
 
     def kind(self) -> str:
         """musician / record / label / scene / person / place / other, from the infobox and first sentence"""
@@ -391,11 +400,26 @@ def connections(wiki: Wiki, seed: Article, progress=True):
             "lead": 0.15 * (1 if any(m[2] for m in r["mentions"]) else 0),
             "infobox": 0.10 * (1 if r["infobox"] else 0),
             "links back": 0.25 * (1 if r["back"] else 0),
-            "shared": 0.20 * min(1.0, r["shared"] / 0.25),      # cosine 0.25+ counts as fully shared
+            "shared": 0.20 * min(1.0, r["shared"] / 0.5),       # cosine 0.5+ counts as fully shared
         }
         r["parts"] = parts
         r["score"] = round(sum(parts.values()), 3)
-    return sorted(out.values(), key=lambda r: -r["score"])
+    return sorted(out.values(), key=lambda r: (-r["score"], -len(r["mentions"]), -r["shared"]))
+
+
+def window(sent: str, anchor: str, width: int) -> str:
+    """the sentence, or the part of it around the link's words if it's long"""
+    if len(sent) <= width:
+        return sent
+    i = sent.find(anchor) if anchor else -1
+    if i < 0 or i + len(anchor) < width - 20:
+        return sent[:width].rsplit(" ", 1)[0] + "…"
+    start = max(0, i - width // 2)
+    start = sent.find(" ", start) + 1 if start else 0
+    piece = sent[start:start + width]
+    if start + width < len(sent):
+        piece = piece.rsplit(" ", 1)[0] + "…"
+    return "…" + piece
 
 
 def cosine(a: set, b: set) -> float:
@@ -404,13 +428,18 @@ def cosine(a: set, b: set) -> float:
     return len(a & b) / math.sqrt(len(a) * len(b))
 
 
+LISTY = {"discography", "selected discography", "discography (partial)", "works", "selected works",
+         "recordings", "selected recordings", "albums"}
+
+
 def reason(r: dict, width: int = 220) -> str:
     if r["mentions"]:
-        # prefer a body sentence over a list item, and the longest-but-not-huge one
-        sec, sent, _ = sorted(r["mentions"], key=lambda m: (not m[2], m[0] in ("discography", "selected discography"),
-                                                              -min(len(m[1]), 300)))[0]
-        s = sent if len(sent) <= width else sent[:width].rsplit(" ", 1)[0] + "…"
-        return f"“{s}”" + (f"  [{sec}]" if sec and sec != "(opening)" else "")
+        name = re.sub(r"\s*\(.*?\)\s*$", "", r["title"])
+        surname = name.split()[-1].lower() if name.split() else ""
+        # prose before list items; the opening first; a sentence that names it; then the shortest real one
+        sec, sent, _, anchor = sorted(r["mentions"], key=lambda m: (
+            m[0] in LISTY, not m[2], surname not in m[1].lower(), abs(len(m[1]) - 140)))[0]
+        return f"“{window(sent, anchor, width)}”" + (f"  [{sec}]" if sec and sec != "(opening)" else "")
     if r["infobox"]:
         return f"listed in the infobox under “{r['infobox']}”"
     return ""

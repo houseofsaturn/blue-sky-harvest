@@ -198,8 +198,13 @@ lists, link handling and LinkJudge scoring rather than importing wikistack.py). 
 "Milford Graves" [--why] [--all]` → links ranked by mentions, lead, infobox, link-back, shared links;
 grouped as musicians/groups, records, labels, scenes (people/places/other with --all), each with its
 sentence. Tests: `tools/tests/test_connections.py` (made-up music archive + crash run over a real .zim;
-3,821 climate-mini articles, 0 errors). Not yet run on the full Wikipedia: next is JC running it on
-**exlo** (has python3-libzim, lxml and the maxi ZIM in ~/zim; repo via `gh repo clone`), then tune.
+3,821 climate-mini articles, 0 errors). Repo cloned on exlo at `~/blue-sky-harvest` (update: `git pull`).
+**First real run (16 Nov 2026, exlo, maxi ZIM): "Milford Graves" read 138 linked articles in 3.6 s.**
+Ranking looked right (NYAQ, Ayler, Cyrille, Logan, Pullen, W. Parker; Graves/Pullen Yale concert,
+Bäbi, NYAQ albums; Tzadik, DIW, ESP; free jazz). 0.2 fixes: infobox clean-up (CSS, hlists, hidden
+dates, ref marks), sentences split after "." inside brackets / quotes, "rel." etc., reason sentence
+centred on the name, records no longer tie (shared cap 0.5). Open: ESP-Disk ranks low (no link back
+though 6 mentions); JC to judge who's missing.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the

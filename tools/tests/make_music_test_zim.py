@@ -43,9 +43,11 @@ REFS = ('<details data-level="2" open=""><summary class="section-heading"><h2 id
 
 ARTICLES = {
     "Orrin_Vale": page("Orrin Vale", [
-        ("Born", 'Orrin Vale<br>3 May 1938<br><a href="Harrow_Bend">Harrow Bend</a>'),
-        ("Genres", '<a href="Free_jazz">Free jazz</a>'),
-        ("Instruments", "Drums, percussion"),
+        ("Born", '<span style="display:none">(<span class="bday">1938-05-03</span>)</span>3 May 1938'
+                 '<sup class="reference"><a href="#c1">[1]</a></sup><br><a href="Harrow_Bend">Harrow Bend</a>'),
+        ("Genres", '<style>.mw-parser-output .hlist ul{margin:0}</style><div class="hlist"><ul>'
+                   '<li><a href="Free_jazz">Free jazz</a></li><li>avant-garde jazz</li></ul></div>'),
+        ("Instruments", '<div class="hlist"><ul><li>Drums</li><li>percussion</li></ul></div>'),
         ("Labels", '<a href="Kestrel_Disk">Kestrel Disk</a>'),
         ("Associated acts", '<a href="The_Hollow_Quartet">The Hollow Quartet</a>, <a href="Lena_Marsh">Lena Marsh</a>'),
     ], [
