@@ -240,6 +240,12 @@ Artists" left out; `played(a, b, albums, tracks, example, year)` ranked by album
 classes dropped; `label(artist, name, n)`. Needs 9 more tables (track, medium, release_group, …,
 release_group_meta in derived): first run re-unpacks (~12 min). Run with `--redo`. Wikidata: JC asked;
 advised to leave it out until a real question needs it (mainly non-music: works, influences, movements).
+**0.4 worked on exlomax (16 Nov 2026, 25.6 min incl. re-unpack; music.db 915 MB):** 6.6M artist-album
+credits, 5.5M pairs, 737k instruments, 485k genres, 1.85M artist labels, 537k compilations left out.
+Graves now: Laswell 4 albums, W. Parker 3, Cyrille 2 (Dialogue of the Drums 1974), Gomez / M. Allen
+(Barrage 1965), Glover / Doyle (Bäbi 1977), Pullen (Yale 1966, via joint artist credit); Montego Joe's
+sidemen down to 1 album. Labels: Tzadik, DIW, ESP-Disk… MB quirk: some first-release years are
+reissue dates (Arriba! 1994). Next: copy music.db to exlo (`~/musicdb/music.db`), fold into connections.py.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
