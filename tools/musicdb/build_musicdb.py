@@ -47,7 +47,7 @@ import time
 from collections import Counter
 from urllib.parse import unquote
 
-VERSION = "0.2"
+VERSION = "0.3"
 
 try:                                    # Windows consoles can choke on non-ASCII names
     sys.stdout.reconfigure(errors="replace")
@@ -275,10 +275,13 @@ SQL_PROP = re.compile(r"\((\d+),'wikibase_item','(Q\d+)'")
 
 
 def sql_lines(path: str):
+    """every line that can hold rows: the dumps put either many rows after "INSERT INTO … VALUES" on one
+    line, or the header alone with one row per following line (seen in the Nov 2026 enwiki dumps)"""
     with gzip.open(path, "rt", encoding="utf-8", errors="replace") as fh:
         for line in fh:
-            if line.startswith("INSERT INTO"):
-                yield line
+            if line.startswith(("--", "/*", "LOCK", "UNLOCK", "DROP", "CREATE", ")", "  `", "  KEY", "  PRIMARY")):
+                continue
+            yield line
 
 
 def sql_unescape(s: str) -> str:

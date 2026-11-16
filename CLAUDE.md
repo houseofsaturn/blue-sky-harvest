@@ -222,7 +222,11 @@ First run (16 Nov 2026): unpack took only ~12 min; then a database step made exl
 memory; Start menu and SSH dead for 3 h, hard restart). 0.2: memory watchdog (stops itself below 3 GB
 free, exit code 3), below-normal priority, progress lines + `work\build.log`, SQLite cache 512 MB,
 played-step SQL run one statement at a time. Rerun with `--redo` after a crash (work.db has no journal).
-Next: rerun, read build.log, then `musicdb.py "Milford Graves"`, then fold it into connections.py.
+**Second run (0.2) worked: 8.2 min, never under 24.8 GB free, music.db 644 MB** (3.04M artists, 813k
+relationships, 2.55M played-together pairs, 802k instruments, 485k genres). Bug: 0 Wikidata→enwiki
+matches (only 10,926 direct links), because the Nov 2026 enwiki .sql.gz puts the `INSERT INTO … VALUES`
+header on its own line with one row per line after it. 0.3 reads every line. Next: `--redo`, then
+`musicdb.py "Milford Graves"`, then fold it into connections.py.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the

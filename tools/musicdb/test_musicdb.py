@@ -93,8 +93,10 @@ def build(d):
                "artist_tag": [[1, 1, 4, "2026"], [1, 2, 9, "2026"], [1, 3, 1, "2026"], [2, 1, 0, "2026"]]}
     tarbz2(os.path.join(d, "mbdump-derived.tar.bz2"), {f"mbdump/{k}": tsv(v) for k, v in derived.items()})
     with gzip.open(os.path.join(d, "enwiki-latest-page_props.sql.gz"), "wt", encoding="utf-8") as f:
-        f.write("-- MySQL dump\nINSERT INTO `page_props` VALUES (11,'wikibase_item','Q101',NULL),"
-                "(11,'page_image_free','X.jpg',NULL),(12,'wikibase_item','Q102',NULL),(13,'wikibase_item','Q999',NULL);\n")
+        # the real Nov 2026 layout: header line, then one row per line
+        f.write("-- MySQL dump\nCREATE TABLE `page_props` (\n  `pp_page` int(10) unsigned NOT NULL,\n) ENGINE=InnoDB;\n"
+                "INSERT INTO `page_props` VALUES\n(11,'wikibase_item','Q101',NULL),\n"
+                "(11,'page_image_free','X.jpg',NULL),\n(12,'wikibase_item','Q102',NULL),\n(13,'wikibase_item','Q999',NULL);\n")
     with gzip.open(os.path.join(d, "enwiki-latest-page.sql.gz"), "wt", encoding="utf-8") as f:
         f.write("INSERT INTO `page` VALUES (11,0,'Orrin_Vale',0,0,0.5,'20261101','20261101',1,100,'wikitext',NULL),"
                 "(12,0,'Lena_Marsh_(saxophonist)',0,0,0.5,'20261101','20261101',1,100,'wikitext',NULL),"
