@@ -252,7 +252,14 @@ most connected). Linked musicians get a "MusicBrainz: 2 albums together, first �
 (1964–1972)" / "teacher" line; MB partners not linked from the article are added (max 30), incl. ones
 with no Wikipedia article ("not on Wikipedia"). Scores: Wikipedia parts (1.00) + played (albums up to
 3: 0.25, else tracks: 0.10) + band/teacher 0.10, all ÷ 1.35 so still 0–1. Tests pass (made-up zim +
-tiny music.db; climate crash run). Next: JC runs it on exlo for Graves.
+tiny music.db; climate crash run).
+**First combined run on exlo (16 Nov 2026):** music.db copied to exlo `~/musicdb/` (scp -3 from the Mac,
+873 MB, 74 s); Graves ran in ~4 s + music.db. Top 15 musicians all Wikipedia-linked, nearly all with a
+MusicBrainz line (NYAQ member of 1964–; Parker 3 albums; Cyrille Dialogue of the Drums; Pullen Yale;
+Bley / M. Allen / Gómez Barrage). 23 MB-only musicians added (Laswell 4 albums, H. Glover, S. Morgan,
+C. Gayle) but all below the top 15: open question for JC whether MusicBrainz should weigh more.
+Next: copy music.db to fatline; fatline needs its own Wikipedia (text-only "nopic", ~46 GB per Kiwix,
+download on fatline itself); python3-libzim + python3-lxml on fatline.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
