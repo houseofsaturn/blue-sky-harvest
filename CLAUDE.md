@@ -127,8 +127,9 @@ and game content stays out.
   **Tailscale set up (15 Nov 2026):** fatline (100.90.163.115) and the personal MacBook joined
   (tailnet login chosen by JC; fatline needed `apt install curl` first; the Mac app's sign-in
   button did nothing, so `/Applications/Tailscale.app/Contents/MacOS/Tailscale up` gave the link).
-  Personal MacBook: `ssh fatline` → HostName `fatline` (MagicDNS), works anywhere. Still to do:
-  disable key expiry for fatline (admin console), Tailscale on the work laptop (and repoint its
+  Personal MacBook: `ssh fatline` → HostName `fatline` (MagicDNS), works anywhere. **Key expiry for
+  fatline disabled** (16 Nov 2026; checked with `tailscale status --self --json | grep -i keyexpiry` →
+  nothing). Still to do: Tailscale on the work laptop (and repoint its
   `fatline.local` shortcut to `fatline`), Tailscale on exlo.
   Battery: fatline's is an **unbranded clone** (label 10.8 V 5200 mAh 56.2 Wh; chip claims SANYO,
   48.8 Wh, 23 cycles, so the figures are likely fake). Stuck at 36%, won't charge even with
@@ -260,6 +261,11 @@ Bley / M. Allen / Gómez Barrage). 23 MB-only musicians added (Laswell 4 albums,
 C. Gayle) but all below the top 15: open question for JC whether MusicBrainz should weigh more.
 Next: copy music.db to fatline; fatline needs its own Wikipedia (text-only "nopic", ~46 GB per Kiwix,
 download on fatline itself); python3-libzim + python3-lxml on fatline.
+**fatline set up for music (16 Nov 2026):** `~/musicdb/music.db` copied (scp -3 from exlomax, 872 MB);
+python3-libzim 3.6 + python3-lxml installed; `~/zim/wikipedia_en_all_nopic_2026-06.zim` downloading
+with `wget -bc` (latest nopic; ~60-70 GB; 20-45 MB/s, ~35 min; log `~/zim/wget-log`). Find the latest
+name with `curl -sL https://download.kiwix.org/zim/wikipedia/ | grep -o 'wikipedia_en_all_nopic_[0-9-]*\.zim' | sort -u | tail -1`
+(-L needed: the page redirects). Next: Graves test on fatline once it's saved; then gleaner #listenings.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
