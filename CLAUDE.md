@@ -265,7 +265,11 @@ download on fatline itself); python3-libzim + python3-lxml on fatline.
 python3-libzim 3.6 + python3-lxml installed; `~/zim/wikipedia_en_all_nopic_2026-06.zim` downloading
 with `wget -bc` (latest nopic; ~60-70 GB; 20-45 MB/s, ~35 min; log `~/zim/wget-log`). Find the latest
 name with `curl -sL https://download.kiwix.org/zim/wikipedia/ | grep -o 'wikipedia_en_all_nopic_[0-9-]*\.zim' | sort -u | tail -1`
-(-L needed: the page redirects). Next: Graves test on fatline once it's saved; then gleaner #listenings.
+(-L needed: the page redirects). **Download finished; Graves test on fatline passed (16 Nov 2026):**
+`connections 0.3 · wikipedia_en_all_nopic_2026-06.zim · music.db`, 138 articles in 2.5 s, same ranking as
+exlo. Small bug seen: "Yoruba language" (non-musical-interests section) shown under Labels; the label
+test in `Article.kind()` is too loose. fatline now has everything the music conversations need.
+Next: gleaner #listenings commands (the command language) calling connections.py on fatline.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
