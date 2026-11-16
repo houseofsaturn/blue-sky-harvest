@@ -46,6 +46,48 @@ assert C.split_sentences("(A had B.) In 1977, C did D.") == ["(A had B.)", "In 1
 assert C.split_sentences("Pieces of Time (Soul Note, rel. 1983).") == ["Pieces of Time (Soul Note, rel. 1983)."]
 print("✅ music test archive: ranking and kinds as expected")
 
+# ---- with a tiny music.db (made-up MusicBrainz data for the same made-up musicians)
+import sqlite3                              # noqa: E402
+MDB = "/tmp/music_test.db"
+if os.path.exists(MDB):
+    os.remove(MDB)
+con = sqlite3.connect(MDB)
+con.executescript("""
+    CREATE TABLE artist(id INTEGER PRIMARY KEY, mbid TEXT, name TEXT, sort_name TEXT, type TEXT, begin INTEGER,
+                        end INTEGER, area TEXT, wiki TEXT, qid TEXT);
+    CREATE TABLE rel(a INTEGER, b INTEGER, kind TEXT, begin INTEGER, end INTEGER, detail TEXT);
+    CREATE TABLE played(a INTEGER, b INTEGER, albums INTEGER, tracks INTEGER, example TEXT, year INTEGER);
+    CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT);
+    INSERT INTO meta VALUES ('musicbrainz_dump', '2026-11-14 00:22:30');
+    INSERT INTO artist VALUES (1,'m1','Orrin Vale','','Person',1938,2019,'','Orrin_Vale',NULL),
+        (2,'m2','Lena Marsh','','Person',NULL,NULL,'','Lena_Marsh',NULL),
+        (3,'m3','Tom Ide','','Person',NULL,NULL,'','Tom_Ide',NULL),
+        (4,'m4','The Hollow Quartet','','Group',1964,1972,'','The_Hollow_Quartet',NULL),
+        (5,'m5','Rook Abernathy','','Person',NULL,NULL,'','Rook_Abernathy',NULL),
+        (6,'m6','Silas Crane','','Person',NULL,NULL,'',NULL,NULL),
+        (7,'m7','Orrin Vale','','Person',NULL,NULL,'',NULL,NULL);
+    INSERT INTO rel VALUES (1,4,'member of band',1964,1972,'drums'), (3,1,'teacher',NULL,NULL,NULL);
+    INSERT INTO played VALUES (1,2,2,4,'Night Choir',1967), (1,5,1,0,'Grey Lanterns',1971),
+        (1,6,1,3,'Night Choir',1967), (3,7,0,1,NULL,NULL);
+""")
+con.commit()
+con.close()
+mb = C.MusicDB(MDB)
+assert mb.artist_for(seed) == 1                                            # by Wikipedia title, not the namesake
+ranked2 = C.connections(w, seed, progress=False, mb=mb)
+by2 = {r["title"]: r for r in ranked2}
+assert ranked2[0]["title"] == "Lena Marsh", ranked2[0]["title"]
+assert C.mb_text(by2["Lena Marsh"]["mb"]) == "MusicBrainz: 2 albums together, first Night Choir (1967)"
+assert "Rook Abernathy" in by2 and by2["Rook Abernathy"]["kind"] == "musician"   # only via MusicBrainz
+assert by2["Silas Crane"].get("offwiki") and by2["Silas Crane"]["kind"] == "musician"
+assert C.mb_text(by2["Tom Ide"]["mb"]) == "MusicBrainz: teacher", C.mb_text(by2["Tom Ide"]["mb"])
+assert C.mb_text(by2["The Hollow Quartet"]["mb"]) == "MusicBrainz: member of (1964–1972)"
+assert all(0 <= r["score"] <= 1.0 for r in ranked2), max(r["score"] for r in ranked2)
+for absent in ("Drum kit", "1964", "Jazz Weekly"):
+    assert absent not in by2, absent
+assert by2["Lena Marsh"]["score"] > by2["Silas Crane"]["score"]        # Wikipedia + MusicBrainz beats MusicBrainz alone
+print("✅ with music.db: MusicBrainz evidence merged, new musicians added, scores 0–1")
+
 if len(sys.argv) > 1:
     real = C.Wiki(sys.argv[1])
     n = bad = 0

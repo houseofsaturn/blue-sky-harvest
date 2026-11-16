@@ -13,6 +13,12 @@ the connection.
     python3 connections.py "Milford Graves" --all         # also people, places, other
     python3 connections.py "Milford Graves" --why         # show how each score was made
     python3 connections.py "Milford Graves" --zim /path/to/wikipedia.zim
+    python3 connections.py "Milford Graves" --no-musicdb  # Wikipedia only
+
+If music.db (tools/musicdb, built from MusicBrainz) is found, it adds the hard evidence: albums
+and tracks played on together, bands, teachers. Musicians who played with the artist but aren't
+linked from the article are added too, also those without a Wikipedia article ("not on Wikipedia").
+music.db is looked for in MUSICDB, ~/musicdb/music.db, then next to this script (--musicdb PATH).
 
 Finds the archive itself: the biggest wikipedia*.zim in ~/zim (or the folder in
 WIKISTACK_ZIM_DIR), unless --zim is given.
@@ -23,6 +29,7 @@ How a link is ranked (all from the two articles, nothing guessed):
   infobox     it's listed in the infobox (e.g. "Associated acts", "Labels")
   links back  its own article links back to the artist
   shared      how much the two articles link to the same things
+  played      (music.db) albums together (up to 3), or tracks if no album; bands, teachers, collaborations
 Links only in "See also", references, navigation boxes and so on are ignored.
 The link-back and shared-link ideas come from WIKISTACK's LinkJudge; the skip
 lists and link handling from its article parser.
@@ -37,6 +44,7 @@ import math
 import os
 import posixpath
 import re
+import sqlite3
 import sys
 import time
 from urllib.parse import unquote
@@ -51,7 +59,7 @@ try:
 except ImportError:
     sys.exit("connections: needs lxml.  exlo: sudo apt install python3-lxml   other: pip install lxml")
 
-VERSION = "0.2"
+VERSION = "0.3"
 
 # ---------------------------------------------------------------- what to skip (from WIKISTACK's parser)
 SKIP_CLASS = {"mw-editsection", "navbox", "navbox-styles", "metadata", "noprint", "sidebar", "ambox", "hatnote",
@@ -357,8 +365,96 @@ class Article:
         return "other"
 
 
+# ================================================================ music.db (MusicBrainz)
+MB_REL = {   # (seed -> other, other -> seed)
+    "member of band": ("member of", "member"),
+    "collaboration": ("collaborated in", "collaborator"),
+    "supporting musician": ("supporting musician for", "supporting musician"),
+    "instrumental supporting musician": ("played for", "played for them"),
+    "vocal supporting musician": ("sang for", "sang for them"),
+    "teacher": ("taught", "teacher"),
+    "subgroup": ("subgroup of", "subgroup"),
+    "founder": ("founded", "founder"),
+    "conductor position": ("conducted", "conductor"),
+    "artistic director": ("artistic director of", "artistic director"),
+}
+MB_SPLIT = 1.35         # Wikipedia parts add up to 1.00, music.db parts to 0.35: scores are divided by this
+
+
+def find_musicdb(arg):
+    if arg:
+        if not os.path.exists(arg):
+            sys.exit(f"connections: no such file: {arg}")
+        return arg
+    for p in (os.environ.get("MUSICDB"), os.path.join(os.path.expanduser("~"), "musicdb", "music.db"),
+              os.path.join(os.path.dirname(os.path.abspath(__file__)), "musicdb", "music.db")):
+        if p and os.path.exists(p):
+            return p
+    return None
+
+
+class MusicDB:
+    def __init__(self, path):
+        self.path = path
+        self.con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            self.stamp = self.con.execute("SELECT value FROM meta WHERE key='musicbrainz_dump'").fetchone()[0][:10]
+        except Exception:
+            self.stamp = ""
+
+    def artist_for(self, seed: "Article"):
+        """the MusicBrainz artist for a Wikipedia article: by title, else by name (most connected wins)"""
+        title = posixpath.basename(seed.path)
+        rows = self.con.execute("SELECT id FROM artist WHERE wiki=?", (title,)).fetchall()
+        if not rows:
+            name = re.sub(r"\s*\(.*?\)\s*$", "", seed.title)
+            rows = self.con.execute("SELECT id FROM artist WHERE name=? COLLATE NOCASE", (name,)).fetchall()
+        if not rows:
+            return None
+        if len(rows) == 1:
+            return rows[0][0]
+        return max((r[0] for r in rows), key=lambda i: self.con.execute(
+            "SELECT count(*) FROM played WHERE a=? OR b=?", (i, i)).fetchone()[0])
+
+    def partners(self, aid: int, limit: int = 60) -> dict:
+        """other artist id -> {name, wiki, type, albums, tracks, example, year, rels: [text]}"""
+        out = {}
+        for oid, name, wiki, typ, alb, trk, ex, yr in self.con.execute("""
+                SELECT x.id, x.name, x.wiki, x.type, p.albums, p.tracks, p.example, p.year FROM played p
+                JOIN artist x ON x.id = CASE WHEN p.a=? THEN p.b ELSE p.a END
+                WHERE p.a=? OR p.b=? ORDER BY p.albums DESC, p.tracks DESC LIMIT ?""", (aid, aid, aid, limit)):
+            out[oid] = {"name": name, "wiki": wiki, "type": typ, "albums": alb or 0, "tracks": trk or 0,
+                        "example": ex, "year": yr, "rels": []}
+        for oid, name, wiki, typ, kind, rev, b, e in self.con.execute("""
+                SELECT x.id, x.name, x.wiki, x.type, r.kind, 0, r.begin, r.end FROM rel r JOIN artist x ON x.id=r.b WHERE r.a=?
+                UNION ALL
+                SELECT x.id, x.name, x.wiki, x.type, r.kind, 1, r.begin, r.end FROM rel r JOIN artist x ON x.id=r.a WHERE r.b=?""",
+                (aid, aid)):
+            if kind not in MB_REL:
+                continue
+            d = out.setdefault(oid, {"name": name, "wiki": wiki, "type": typ, "albums": 0, "tracks": 0,
+                                     "example": None, "year": None, "rels": []})
+            yrs = f"{b or ''}–{e or ''}" if (b or e) else ""
+            d["rels"].append(MB_REL[kind][rev] + (f" ({yrs})" if yrs else ""))
+        return out
+
+
+def mb_text(m: dict) -> str:
+    bits = []
+    if m["rels"]:
+        bits.append("; ".join(dict.fromkeys(m["rels"])))
+    if m["albums"]:
+        s = f"{m['albums']} album{'s' * (m['albums'] != 1)} together"
+        if m["example"]:
+            s += f", first {m['example']}" + (f" ({m['year']})" if m["year"] else "")
+        bits.append(s)
+    elif m["tracks"]:
+        bits.append(f"{m['tracks']} track{'s' * (m['tracks'] != 1)} together")
+    return "MusicBrainz: " + "; ".join(bits) if bits else ""
+
+
 # ================================================================ ranking
-def connections(wiki: Wiki, seed: Article, progress=True):
+def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" = None):
     infobox_links = {}
     for label, _, links in seed.infobox_rows:
         for p in links:
@@ -394,6 +490,38 @@ def connections(wiki: Wiki, seed: Article, progress=True):
     if progress:
         print(f"\r   read {len(candidates)} linked articles in {time.time() - t0:.1f}s" + " " * 10, file=sys.stderr)
     for r in out.values():
+        r["mb"] = None
+    if mb:
+        aid = mb.artist_for(seed)
+        if aid is not None:
+            added = 0
+            for oid, m in mb.partners(aid).items():
+                e = wiki.entry(m["wiki"]) if m["wiki"] else None
+                if e is not None and e.path in out:
+                    out[e.path]["mb"] = m
+                    continue
+                if not (m["albums"] or m["rels"]) or added >= 30:
+                    continue
+                added += 1
+                if e is not None and e.path != seed.path:
+                    try:
+                        target = Article(wiki, e, full=False)
+                    except Exception:
+                        continue
+                    out[e.path] = {"path": e.path, "title": target.title, "kind": target.kind(),
+                                   "first": target.first_sentence, "mentions": [], "infobox": None,
+                                   "back": seed.path in target.all_links or any(
+                                       posixpath.basename(l) == posixpath.basename(seed.path) for l in target.all_links),
+                                   "shared": cosine(seed_links, target.all_links), "mb": m}
+                    if out[e.path]["kind"] not in MAIN_KINDS:
+                        out[e.path]["kind"] = "musician"      # MusicBrainz says they played together
+                elif e is None:
+                    out[f"mb:{oid}"] = {"path": None, "title": m["name"], "kind": "musician", "first": "",
+                                        "mentions": [], "infobox": None, "back": False, "shared": 0.0, "mb": m,
+                                        "offwiki": True}
+            if progress:
+                print(f"   music.db: {added} more musicians from MusicBrainz", file=sys.stderr)
+    for r in out.values():
         n = len(r["mentions"])
         parts = {
             "mentioned": 0.30 * min(n, 3) / 3,
@@ -402,6 +530,12 @@ def connections(wiki: Wiki, seed: Article, progress=True):
             "links back": 0.25 * (1 if r["back"] else 0),
             "shared": 0.20 * min(1.0, r["shared"] / 0.5),       # cosine 0.5+ counts as fully shared
         }
+        if mb:
+            m = r.get("mb")
+            parts["played"] = (0.25 * min(m["albums"], 3) / 3 if m and m["albums"] else
+                               0.10 * min(m["tracks"], 10) / 10 if m and m["tracks"] else 0.0)
+            parts["band/teacher"] = 0.10 if m and m["rels"] else 0.0
+            parts = {k: v / MB_SPLIT for k, v in parts.items()}
         r["parts"] = parts
         r["score"] = round(sum(parts.values()), 3)
     return sorted(out.values(), key=lambda r: (-r["score"], -len(r["mentions"]), -r["shared"]))
@@ -453,10 +587,15 @@ def main():
     ap.add_argument("--top", type=int, default=8, help="how many per group (default 8)")
     ap.add_argument("--all", action="store_true", help="also show other people, places and other links")
     ap.add_argument("--why", action="store_true", help="show how each score was made")
+    ap.add_argument("--musicdb", help="music.db from tools/musicdb (default: found automatically)")
+    ap.add_argument("--no-musicdb", action="store_true", help="Wikipedia only")
     a = ap.parse_args()
 
     wiki = Wiki(find_zim(a.zim))
-    print(f"connections {VERSION} · {os.path.basename(wiki.path)}", file=sys.stderr)
+    mbpath = None if a.no_musicdb else find_musicdb(a.musicdb)
+    mb = MusicDB(mbpath) if mbpath else None
+    print(f"connections {VERSION} · {os.path.basename(wiki.path)}"
+          + (f" · music.db (MusicBrainz {mb.stamp})" if mb else " · no music.db"), file=sys.stderr)
     e = wiki.find(a.name)
     if e is None:
         alts = wiki.suggestions(a.name)
@@ -478,23 +617,27 @@ def main():
             print(f"  {l}: {t[:200]}")
     print()
 
-    ranked = connections(wiki, seed)
+    ranked = connections(wiki, seed, mb=mb)
     shown = 0
     for kind, heading in KIND_ORDER:
         if kind not in MAIN_KINDS and not a.all:
             continue
         rows = [r for r in ranked if r["kind"] == kind
-                and (r["score"] > 0.12 or (kind in MAIN_KINDS and r["mentions"]))][:a.top]
+                and (r["score"] > 0.12 or (kind in MAIN_KINDS and (r["mentions"] or r.get("mb"))))][:a.top]
         if not rows:
             continue
         print(f"\n{heading}")
         print("-" * len(heading))
         for r in rows:
             shown += 1
-            print(f"{r['score']:.2f}  {r['title']}")
+            print(f"{r['score']:.2f}  {r['title']}" + ("  (not on Wikipedia)" if r.get("offwiki") else ""))
             why = reason(r)
             if why:
                 print(f"      {why}")
+            if r.get("mb"):
+                t = mb_text(r["mb"])
+                if t:
+                    print(f"      {t}")
             if a.why:
                 p = r["parts"]
                 print("      " + " · ".join(f"{k} {v:.2f}" for k, v in p.items() if v)

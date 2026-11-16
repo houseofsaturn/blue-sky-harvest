@@ -245,7 +245,14 @@ credits, 5.5M pairs, 737k instruments, 485k genres, 1.85M artist labels, 537k co
 Graves now: Laswell 4 albums, W. Parker 3, Cyrille 2 (Dialogue of the Drums 1974), Gomez / M. Allen
 (Barrage 1965), Glover / Doyle (Bäbi 1977), Pullen (Yale 1966, via joint artist credit); Montego Joe's
 sidemen down to 1 album. Labels: Tzadik, DIW, ESP-Disk… MB quirk: some first-release years are
-reissue dates (Arriba! 1994). Next: copy music.db to exlo (`~/musicdb/music.db`), fold into connections.py.
+reissue dates (Arriba! 1994). Copying music.db to exlo (`~/musicdb/music.db`, via `scp -3` from the Mac).
+**connections 0.3 (16 Nov 2026): music.db folded in** (found via MUSICDB, ~/musicdb/music.db, or
+--musicdb; --no-musicdb to switch off). Seed matched to its MB artist by Wikipedia title (else name,
+most connected). Linked musicians get a "MusicBrainz: 2 albums together, first … (year)" / "member of
+(1964–1972)" / "teacher" line; MB partners not linked from the article are added (max 30), incl. ones
+with no Wikipedia article ("not on Wikipedia"). Scores: Wikipedia parts (1.00) + played (albums up to
+3: 0.25, else tracks: 0.10) + band/teacher 0.10, all ÷ 1.35 so still 0–1. Tests pass (made-up zim +
+tiny music.db; climate crash run). Next: JC runs it on exlo for Graves.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
