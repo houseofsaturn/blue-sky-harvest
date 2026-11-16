@@ -212,6 +212,13 @@ another sentence, else the target's own first line). Scores = mentioned 0.30 + l
 genre, label, instrument, member of, active years; truthy dump ~40 GB bz2) + Wikipedia categories +
 MusicBrainz (CC0; performer credits, member-of-band, collaboration). Output: one small file for exlo /
 fatline. Downloads are big: start them first.
+**Done 16 Nov 2026:** downloads on exlomax in `D:\musicdb\downloads` (MB snapshot 20261114-002230:
+mbdump 7.2 GB, derived 505 MB; enwiki page 2.25 GB, page_props 463 MB). **Wikidata dropped for now**
+(huge, slow in plain Python; MusicBrainz covers most of it). `tools/musicdb/`: `build_musicdb.py`
+(stdlib; resumable steps; unpack → wiki match via Q-ids → artists → rel → performer credits →
+played-together pairs (≤12 performers per item) → instruments, genres → `music.db`), `musicdb.py`
+(lookup), `test_musicdb.py` (made-up dumps in real formats; passes). Next: JC runs the build on
+exlomax, then `musicdb.py "Milford Graves"`, then fold it into connections.py.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
