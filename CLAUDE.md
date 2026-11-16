@@ -217,8 +217,12 @@ mbdump 7.2 GB, derived 505 MB; enwiki page 2.25 GB, page_props 463 MB). **Wikida
 (huge, slow in plain Python; MusicBrainz covers most of it). `tools/musicdb/`: `build_musicdb.py`
 (stdlib; resumable steps; unpack → wiki match via Q-ids → artists → rel → performer credits →
 played-together pairs (≤12 performers per item) → instruments, genres → `music.db`), `musicdb.py`
-(lookup), `test_musicdb.py` (made-up dumps in real formats; passes). Next: JC runs the build on
-exlomax, then `musicdb.py "Milford Graves"`, then fold it into connections.py.
+(lookup), `test_musicdb.py` (made-up dumps in real formats; passes).
+First run (16 Nov 2026): unpack took only ~12 min; then a database step made exlomax freeze (likely
+memory; Start menu and SSH dead for 3 h, hard restart). 0.2: memory watchdog (stops itself below 3 GB
+free, exit code 3), below-normal priority, progress lines + `work\build.log`, SQLite cache 512 MB,
+played-step SQL run one statement at a time. Rerun with `--redo` after a crash (work.db has no journal).
+Next: rerun, read build.log, then `musicdb.py "Milford Graves"`, then fold it into connections.py.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the

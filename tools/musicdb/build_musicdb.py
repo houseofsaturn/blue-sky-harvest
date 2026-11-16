@@ -42,11 +42,12 @@ import shutil
 import sqlite3
 import sys
 import tarfile
+import threading
 import time
 from collections import Counter
 from urllib.parse import unquote
 
-VERSION = "0.1"
+VERSION = "0.2"
 
 try:                                    # Windows consoles can choke on non-ASCII names
     sys.stdout.reconfigure(errors="replace")
@@ -76,8 +77,68 @@ URL_KINDS = {"wikidata", "wikipedia"}
 MAX_PERFORMERS = 12     # a recording with more credited performers (orchestras, choirs) makes no pairs
 
 
+LOGFILE = None
+MIN_FREE_GB = 3.0       # stop before the machine runs short of memory
+
+
 def log(msg: str) -> None:
-    print(time.strftime("%H:%M:%S"), msg, flush=True)
+    line = f"{time.strftime('%H:%M:%S')} {msg}"
+    print(line, flush=True)
+    if LOGFILE:
+        with open(LOGFILE, "a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+
+
+def free_memory_gb():
+    """available physical memory in GB (Windows or Linux), or None if unknown"""
+    try:
+        if os.name == "nt":
+            import ctypes
+
+            class MS(ctypes.Structure):
+                _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                            ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                            ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                            ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                            ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+            m = MS()
+            m.dwLength = ctypes.sizeof(MS)
+            ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+            return m.ullAvailPhys / 1e9
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) / 1e6
+    except Exception:
+        return None
+    return None
+
+
+def watchdog():
+    """runs in the background: stops the build before the machine starts to freeze"""
+    low = 0
+    while True:
+        time.sleep(5)
+        free = free_memory_gb()
+        if free is None:
+            return
+        low = low + 1 if free < MIN_FREE_GB else 0
+        if low >= 2:
+            log(f"🛑 stopping: only {free:.1f} GB of memory left. Nothing is lost: run the same command again "
+                f"to carry on, and tell Claude which step this was.")
+            os._exit(3)
+
+
+def be_gentle():
+    """lower this process's priority so the desktop and SSH stay responsive"""
+    try:
+        if os.name == "nt":
+            import ctypes
+            ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x4000)  # below normal
+        else:
+            os.nice(10)
+    except Exception:
+        pass
 
 
 def unescape(f: str):
@@ -92,8 +153,15 @@ def unescape(f: str):
 def rows(work: str, table: str):
     path = os.path.join(work, "mbdump", table)
     n = COLS[table]
+    size = os.path.getsize(path)
+    big = size > 300e6
+    t0 = time.time()
     with open(path, encoding="utf-8", newline="\n") as fh:
-        for line in fh:
+        for k, line in enumerate(fh, 1):
+            if big and k % 5_000_000 == 0:
+                free = free_memory_gb()
+                log(f"      {table}: {k:,} rows ({time.time() - t0:,.0f} s"
+                    + (f", {free:.1f} GB memory free)" if free is not None else ")"))
             parts = line.rstrip("\n").split("\t")
             if len(parts) < n:          # extra columns at the end (newer schema) are fine
                 raise SystemExit(f"❌ {table}: expected {n} columns, got {len(parts)}. The MusicBrainz "
@@ -150,7 +218,7 @@ def db(path: str) -> sqlite3.Connection:
     con.execute("PRAGMA journal_mode=OFF")
     con.execute("PRAGMA synchronous=OFF")
     con.execute("PRAGMA temp_store=FILE")
-    con.execute("PRAGMA cache_size=-2000000")       # ~2 GB page cache
+    con.execute("PRAGMA cache_size=-512000")        # ~512 MB page cache (also bounds SQLite's sorting memory)
     con.execute("CREATE TABLE IF NOT EXISTS step(name TEXT PRIMARY KEY, at TEXT)")
     return con
 
@@ -364,18 +432,24 @@ def step_played(con, work: str) -> None:
         return
     log("6 played: who was credited on the same recordings and releases (a few minutes)")
     t0 = time.time()
-    con.executescript(f"""
-        CREATE TABLE p1 AS SELECT DISTINCT kind, item, artist FROM perf;
-        CREATE INDEX p1_item ON p1(kind, item);
-        CREATE TABLE psize AS SELECT kind, item, count(*) n FROM p1 GROUP BY kind, item;
-        CREATE INDEX psize_k ON psize(kind, item);
-        CREATE TABLE pairs AS
-            SELECT x.kind, x.artist a, y.artist b, count(*) n, min(x.item) ex
-            FROM psize s JOIN p1 x ON x.kind=s.kind AND x.item=s.item
-                         JOIN p1 y ON y.kind=x.kind AND y.item=x.item AND x.artist < y.artist
-            WHERE s.n BETWEEN 2 AND {MAX_PERFORMERS}
-            GROUP BY x.kind, x.artist, y.artist;
-    """)
+    for what, sql in (
+        ("one row per artist per recording/release",
+         "CREATE TABLE IF NOT EXISTS p1 AS SELECT DISTINCT kind, item, artist FROM perf"),
+        ("index", "CREATE INDEX IF NOT EXISTS p1_item ON p1(kind, item)"),
+        ("performers per recording/release",
+         f"CREATE TABLE IF NOT EXISTS psize AS SELECT kind, item FROM p1 GROUP BY kind, item "
+         f"HAVING count(*) BETWEEN 2 AND {MAX_PERFORMERS}"),
+        ("pairs (the big one)",
+         "CREATE TABLE IF NOT EXISTS pairs AS "
+         "SELECT x.kind, x.artist a, y.artist b, count(*) n, min(x.item) ex "
+         "FROM psize s JOIN p1 x ON x.kind=s.kind AND x.item=s.item "
+         "JOIN p1 y ON y.kind=x.kind AND y.item=x.item AND x.artist < y.artist "
+         "GROUP BY x.kind, x.artist, y.artist"),
+    ):
+        log(f"   {what}…")
+        con.execute(sql)
+        con.commit()
+        log(f"   … done ({time.time() - t0:,.0f} s)")
     log(f"   {con.execute('SELECT count(*) FROM pairs').fetchone()[0]:,} pairs ({time.time() - t0:,.0f} s)")
 
     # titles for the examples (only the ones used), then merge recording and release pairs in SQLite
@@ -487,7 +561,14 @@ def main():
     for f in ("enwiki-latest-page.sql.gz", "enwiki-latest-page_props.sql.gz"):
         if not os.path.exists(os.path.join(a.dumps, f)):
             raise SystemExit(f"❌ missing {os.path.join(a.dumps, f)}")
-    log(f"build_musicdb {VERSION}: dumps {a.dumps}  work {work}  out {out}")
+    global LOGFILE
+    LOGFILE = os.path.join(work, "build.log")
+    be_gentle()
+    threading.Thread(target=watchdog, daemon=True).start()
+    log(f"build_musicdb {VERSION}: dumps {a.dumps}  work {work}  out {out}  (log: {LOGFILE})")
+    free = free_memory_gb()
+    if free is not None:
+        log(f"   {free:.1f} GB memory free; will stop itself below {MIN_FREE_GB:.0f} GB")
     t0 = time.time()
     step_unpack(a.dumps, work)
     wpath = os.path.join(work, "work.db")
