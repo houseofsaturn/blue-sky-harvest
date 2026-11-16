@@ -20,16 +20,20 @@ Steps (each one is skipped if already done, so you can stop and run it again):
   3 artists  every artist, with type, years, area and Wikipedia title
   4 links    artist-to-artist relationships (member of band, collaboration, teacher, …)
   5 credits  performer credits on recordings and releases (who played what)
-  6 played   pairs of artists credited on the same recordings / releases, with an example
-  7 tags     genres (MusicBrainz genre names only) and instruments per artist
-  8 finish   copy the results into the small --out file, with indexes
+  6 albums   every credit traced to its album (MusicBrainz "release group", so reissues count once),
+             plus the album's own artist credit (e.g. "Milford Graves & Don Pullen");
+             various-artists compilations, DJ mixes and mixtapes are left out
+  7 played   pairs of artists on the same albums (and the same tracks), with the earliest album as example
+  8 tags     genres (MusicBrainz genre names only), instruments, and labels per artist
+  9 finish   copy the results into the small --out file, with indexes
 
 What ends up in music.db:
   artist(id, mbid, name, sort_name, type, begin, end, area, wiki, qid)
   rel(a, b, kind, begin, end, detail)          a --kind--> b, e.g. Graves "member of band" NYAQ
-  played(a, b, recordings, releases, example)  a < b; example is a recording or release title
-  instrument(artist, name, n)                  from performer credits
+  played(a, b, albums, tracks, example, year)  a < b; example = their earliest shared album
+  instrument(artist, name, n)                  from performer credits (generic classes left out)
   genre(artist, name, votes)
+  label(artist, name, n)                       labels of the artist's own albums, n = albums
   meta(key, value)                             dump dates, counts, build time
 """
 from __future__ import annotations
@@ -47,7 +51,7 @@ import time
 from collections import Counter
 from urllib.parse import unquote
 
-VERSION = "0.3"
+VERSION = "0.4"
 
 try:                                    # Windows consoles can choke on non-ASCII names
     sys.stdout.reconfigure(errors="replace")
@@ -59,12 +63,17 @@ except Exception:
 # column positions, from musicbrainz-server admin/sql/CreateTables.sql (checked 16 Nov 2026)
 CORE = ["artist", "artist_type", "area", "link", "link_type", "link_attribute", "link_attribute_type",
         "l_artist_artist", "l_artist_recording", "l_artist_release", "l_artist_url", "url",
-        "recording", "release", "genre"]
-DERIVED = ["artist_tag", "tag"]
+        "release", "genre", "track", "medium", "release_group",
+        "release_group_secondary_type_join", "release_group_secondary_type", "artist_credit_name",
+        "release_label", "label"]
+DERIVED = ["artist_tag", "tag", "release_group_meta"]
 COLS = {
     "artist": 19, "artist_type": 6, "area": 14, "link": 11, "link_type": 16, "link_attribute": 3,
     "link_attribute_type": 8, "l_artist_artist": 9, "l_artist_recording": 9, "l_artist_release": 9,
     "l_artist_url": 9, "url": 5, "recording": 9, "release": 14, "genre": 6, "artist_tag": 4, "tag": 3,
+    "track": 12, "medium": 9, "release_group": 8, "release_group_secondary_type_join": 3,
+    "release_group_secondary_type": 6, "artist_credit_name": 5, "release_label": 5, "label": 16,
+    "release_group_meta": 7,
 }
 
 # artist <-> artist relationship types worth keeping (MusicBrainz link_type names)
@@ -75,6 +84,13 @@ REL_KINDS = {"member of band", "collaboration", "supporting musician", "instrume
 PERF_KINDS = {"performer", "instrument", "vocal", "performing orchestra", "conductor"}
 URL_KINDS = {"wikidata", "wikipedia"}
 MAX_PERFORMERS = 12     # a recording with more credited performers (orchestras, choirs) makes no pairs
+MAX_ALBUM = 20          # an album with more credited artists makes no pairs
+SKIP_RG_TYPES = {"Compilation", "DJ-mix", "Mixtape/Street"}
+VARIOUS_ARTISTS = "89ad4ac3-39f7-470e-963a-56509c546377"
+# instrument *classes* rather than instruments (Hornbostel–Sachs and family names)
+GENERIC_INSTR = re.compile(r"^(membrano|idio|chordo|aero|electro|lamello|metallo)phones?$|\binstruments?$|"
+                           r"^(plucked|bowed|struck|rubbed|blown|free reed|lip[- ]reed|edge[- ]blown)\b|"
+                           r"^(strings|woodwind|brass|keyboard|percussion family|other instruments?)$", re.I)
 
 
 LOGFILE = None
@@ -178,16 +194,15 @@ def step_unpack(dumps: str, work: str) -> None:
     out = os.path.join(work, "mbdump")
     os.makedirs(out, exist_ok=True)
     for archive, tables in (("mbdump.tar.bz2", CORE), ("mbdump-derived.tar.bz2", DERIVED)):
-        done = os.path.join(out, f".done-{archive}")
-        if os.path.exists(done):
+        want = {t for t in tables if not os.path.exists(os.path.join(out, t))}
+        if not want:
             log(f"1 unpack: {archive} already done")
             continue
         path = os.path.join(dumps, archive)
         if not os.path.exists(path):
             raise SystemExit(f"❌ missing {path}")
-        log(f"1 unpack: reading {archive} ({os.path.getsize(path) / 1e9:.1f} GB). This is the slow part: "
-            f"the whole file has to be decompressed even for the tables we skip.")
-        want = set(tables)
+        log(f"1 unpack: reading {archive} ({os.path.getsize(path) / 1e9:.1f} GB) for {', '.join(sorted(want))}. "
+            f"The whole file has to be decompressed even for the tables we skip.")
         t0 = time.time()
         got = set()
         with tarfile.open(path, mode="r|bz2") as tar:
@@ -195,8 +210,10 @@ def step_unpack(dumps: str, work: str) -> None:
                 name = m.name.split("/")[-1]
                 if m.name.startswith("mbdump/") and name in want and m.isfile():
                     src = tar.extractfile(m)
-                    with open(os.path.join(out, name), "wb") as dst:
+                    part = os.path.join(out, name + ".part")
+                    with open(part, "wb") as dst:
                         shutil.copyfileobj(src, dst, 16 << 20)
+                    os.replace(part, os.path.join(out, name))
                     got.add(name)
                     log(f"   {name}: {m.size / 1e6:,.0f} MB  ({time.time() - t0:,.0f} s so far)")
                 elif m.isfile() and m.size > 1e9:
@@ -208,7 +225,6 @@ def step_unpack(dumps: str, work: str) -> None:
         missing = want - got
         if missing:
             raise SystemExit(f"❌ {archive} has no {', '.join(sorted(missing))}. Is the download complete?")
-        open(done, "w").close()
         log(f"1 unpack: {archive} done in {(time.time() - t0) / 60:,.1f} min")
 
 
@@ -241,7 +257,8 @@ def lookups(work: str) -> dict:
     for r in rows(work, "link_attribute_type"):
         at[int(r[0])] = (r[5], as_int(r[2]))               # name, root id
     instr_root = {i for i, (n, _) in at.items() if n in ("instrument", "vocal")}
-    instruments = {i: n for i, (n, root) in at.items() if root in instr_root and i not in instr_root}
+    instruments = {i: n for i, (n, root) in at.items()
+                   if root in instr_root and i not in instr_root and not GENERIC_INSTR.search(n)}
     return {
         "link_type": lt,
         "instruments": instruments,
@@ -428,67 +445,118 @@ def step_credits(con, work: str, L: dict, links: dict) -> None:
     mark(con, "credits")
 
 
-# ================================================================ 6 played
+# ================================================================ 6 albums
+def step_albums(con, work: str) -> None:
+    if done(con, "albums"):
+        log("6 albums: already done")
+        return
+    log("6 albums: tracing credits to albums")
+    t0 = time.time()
+    skip_types = {int(r[0]) for r in rows(work, "release_group_secondary_type") if r[1] in SKIP_RG_TYPES}
+    skip_rg = {int(r[0]) for r in rows(work, "release_group_secondary_type_join") if int(r[1]) in skip_types}
+    log(f"   {len(skip_rg):,} compilations / DJ mixes / mixtapes left out")
+    years = {}
+    for r in rows(work, "release_group_meta"):
+        if r[2]:
+            years[int(r[0])] = int(r[2])
+    con.execute("CREATE TABLE rg(id INTEGER PRIMARY KEY, name TEXT, ac INTEGER, year INTEGER)")
+    batch = []
+    for r in rows(work, "release_group"):
+        i = int(r[0])
+        if i not in skip_rg:
+            batch.append((i, r[2], int(r[3]), years.get(i)))
+    con.executemany("INSERT INTO rg VALUES (?,?,?,?)", batch)
+    del batch, years
+    con.execute("CREATE TABLE release_rg(id INTEGER PRIMARY KEY, rg INTEGER)")
+    con.executemany("INSERT INTO release_rg VALUES (?,?)", ((int(r[0]), int(r[4])) for r in rows(work, "release")))
+    con.execute("CREATE TABLE med(id INTEGER PRIMARY KEY, rel INTEGER)")
+    con.executemany("INSERT INTO med VALUES (?,?)", ((int(r[0]), int(r[1])) for r in rows(work, "medium")))
+    need = {r[0] for r in con.execute("SELECT DISTINCT item FROM perf WHERE kind=0")}
+    con.execute("CREATE TABLE trk(rec INTEGER, med INTEGER)")
+    con.executemany("INSERT INTO trk VALUES (?,?)",
+                    ((int(r[2]), int(r[3])) for r in rows(work, "track") if int(r[2]) in need))
+    del need
+    con.execute("CREATE TABLE acn(ac INTEGER, artist INTEGER)")
+    con.executemany("INSERT INTO acn VALUES (?,?)", ((int(r[0]), int(r[2])) for r in rows(work, "artist_credit_name")))
+    va = con.execute("SELECT id FROM artist WHERE mbid=?", (VARIOUS_ARTISTS,)).fetchone()
+    va = va[0] if va else -1
+    for what, sql in (
+        ("indexes", "CREATE INDEX trk_rec ON trk(rec)"),
+        ("", "CREATE INDEX acn_ac ON acn(ac)"),
+        ("credits → albums",
+         f"""CREATE TABLE album_artist AS SELECT DISTINCT rg, artist FROM (
+               SELECT r.rg, p.artist FROM perf p JOIN trk t ON t.rec=p.item JOIN med m ON m.id=t.med
+                      JOIN release_rg r ON r.id=m.rel WHERE p.kind=0
+               UNION ALL
+               SELECT r.rg, p.artist FROM perf p JOIN release_rg r ON r.id=p.item WHERE p.kind=1
+               UNION ALL
+               SELECT g.id, a.artist FROM rg g JOIN acn a ON a.ac=g.ac
+             ) WHERE rg IN (SELECT id FROM rg) AND artist != {va}"""),
+        ("", "CREATE INDEX album_artist_rg ON album_artist(rg)"),
+    ):
+        if what:
+            log(f"   {what}…")
+        con.execute(sql)
+        con.commit()
+    n = con.execute("SELECT count(*) FROM album_artist").fetchone()[0]
+    mark(con, "albums")
+    log(f"   {n:,} artist-album credits ({time.time() - t0:,.0f} s)")
+
+
+# ================================================================ 7 played
 def step_played(con, work: str) -> None:
     if done(con, "played"):
-        log("6 played: already done")
+        log("7 played: already done")
         return
-    log("6 played: who was credited on the same recordings and releases (a few minutes)")
+    log("7 played: who was on the same albums and tracks")
     t0 = time.time()
     for what, sql in (
-        ("one row per artist per recording/release",
-         "CREATE TABLE IF NOT EXISTS p1 AS SELECT DISTINCT kind, item, artist FROM perf"),
-        ("index", "CREATE INDEX IF NOT EXISTS p1_item ON p1(kind, item)"),
-        ("performers per recording/release",
-         f"CREATE TABLE IF NOT EXISTS psize AS SELECT kind, item FROM p1 GROUP BY kind, item "
+        ("one row per artist per track",
+         "CREATE TABLE IF NOT EXISTS p1 AS SELECT DISTINCT item, artist FROM perf WHERE kind=0"),
+        ("index", "CREATE INDEX IF NOT EXISTS p1_item ON p1(item)"),
+        ("tracks with 2–12 performers",
+         f"CREATE TABLE IF NOT EXISTS psize AS SELECT item FROM p1 GROUP BY item "
          f"HAVING count(*) BETWEEN 2 AND {MAX_PERFORMERS}"),
-        ("pairs (the big one)",
-         "CREATE TABLE IF NOT EXISTS pairs AS "
-         "SELECT x.kind, x.artist a, y.artist b, count(*) n, min(x.item) ex "
-         "FROM psize s JOIN p1 x ON x.kind=s.kind AND x.item=s.item "
-         "JOIN p1 y ON y.kind=x.kind AND y.item=x.item AND x.artist < y.artist "
-         "GROUP BY x.kind, x.artist, y.artist"),
+        ("track pairs",
+         "CREATE TABLE IF NOT EXISTS tpairs AS SELECT x.artist a, y.artist b, count(*) n "
+         "FROM psize s JOIN p1 x ON x.item=s.item JOIN p1 y ON y.item=x.item AND x.artist < y.artist "
+         "GROUP BY x.artist, y.artist"),
+        ("albums with 2–20 artists",
+         f"CREATE TABLE IF NOT EXISTS asize AS SELECT rg FROM album_artist GROUP BY rg "
+         f"HAVING count(*) BETWEEN 2 AND {MAX_ALBUM}"),
+        ("album pairs (the big one)",
+         "CREATE TABLE IF NOT EXISTS apairs AS "
+         "SELECT x.artist a, y.artist b, count(*) n, min(coalesce(g.year, 9999) * 100000000 + g.id) ex "
+         "FROM asize s JOIN album_artist x ON x.rg=s.rg JOIN album_artist y ON y.rg=x.rg AND x.artist < y.artist "
+         "JOIN rg g ON g.id=x.rg GROUP BY x.artist, y.artist"),
+        ("merging",
+         "CREATE TABLE IF NOT EXISTS played AS "
+         "SELECT a, b, sum(albums) albums, sum(tracks) tracks, max(ex) ex FROM ("
+         "  SELECT a, b, n albums, 0 tracks, ex FROM apairs UNION ALL SELECT a, b, 0, n, NULL FROM tpairs"
+         ") GROUP BY a, b"),
     ):
         log(f"   {what}…")
         con.execute(sql)
         con.commit()
         log(f"   … done ({time.time() - t0:,.0f} s)")
-    log(f"   {con.execute('SELECT count(*) FROM pairs').fetchone()[0]:,} pairs ({time.time() - t0:,.0f} s)")
-
-    # titles for the examples (only the ones used), then merge recording and release pairs in SQLite
-    log("   example titles")
-    con.execute("CREATE TABLE extitle(kind INTEGER, item INTEGER, title TEXT)")
-    for kind, table in ((0, "recording"), (1, "release")):
-        need = {r[0] for r in con.execute("SELECT DISTINCT ex FROM pairs WHERE kind=?", (kind,))}
-        batch = []
-        for r in rows(work, table):
-            i = int(r[0])
-            if i in need:
-                batch.append((kind, i, r[2]))
-        con.executemany("INSERT INTO extitle VALUES (?,?,?)", batch)
-        del need
     con.executescript("""
-        CREATE INDEX extitle_k ON extitle(kind, item);
-        CREATE TABLE played AS
-            SELECT p.a, p.b,
-                   sum(CASE WHEN p.kind=0 THEN p.n ELSE 0 END) AS recordings,
-                   sum(CASE WHEN p.kind=1 THEN p.n ELSE 0 END) AS releases,
-                   coalesce(max(CASE WHEN p.kind=1 THEN t.title END), max(CASE WHEN p.kind=0 THEN t.title END)) AS example
-            FROM pairs p LEFT JOIN extitle t ON t.kind=p.kind AND t.item=p.ex
-            GROUP BY p.a, p.b;
-        DROP TABLE p1; DROP TABLE psize; DROP TABLE pairs; DROP TABLE extitle;
+        CREATE TABLE played2 AS
+            SELECT p.a, p.b, p.albums, p.tracks, g.name example, g.year year
+            FROM played p LEFT JOIN rg g ON g.id = p.ex % 100000000;
+        DROP TABLE played; ALTER TABLE played2 RENAME TO played;
+        DROP TABLE p1; DROP TABLE psize; DROP TABLE tpairs; DROP TABLE asize; DROP TABLE apairs;
     """)
     mark(con, "played")
     n = con.execute("SELECT count(*) FROM played").fetchone()[0]
     log(f"   {n:,} artist pairs played together ({time.time() - t0:,.0f} s)")
 
 
-# ================================================================ 7 tags
+# ================================================================ 8 tags
 def step_tags(con, work: str, L: dict) -> None:
     if done(con, "tags"):
-        log("7 tags: already done")
+        log("8 tags: already done")
         return
-    log("7 tags: instruments and genres")
+    log("8 tags: instruments, genres and labels")
     con.executescript("""
         CREATE TABLE instrument AS
             SELECT p.artist, li.name, count(DISTINCT p.kind || ':' || p.item) n
@@ -502,13 +570,26 @@ def step_tags(con, work: str, L: dict) -> None:
         if g and int(r[2]) > 0:
             batch.append((int(r[0]), g, int(r[2])))
     con.executemany("INSERT INTO genre VALUES (?,?,?)", batch)
+    con.execute("CREATE TABLE lab(id INTEGER PRIMARY KEY, name TEXT)")
+    con.executemany("INSERT INTO lab VALUES (?,?)", ((int(r[0]), r[2]) for r in rows(work, "label")))
+    con.execute("CREATE TABLE rlab(rel INTEGER, label INTEGER)")
+    con.executemany("INSERT INTO rlab VALUES (?,?)", ((int(r[1]), int(r[2])) for r in rows(work, "release_label") if r[2]))
+    con.executescript("""
+        CREATE INDEX release_rg_rg ON release_rg(rg);
+        CREATE TABLE label AS
+            SELECT a.artist, l.name, count(DISTINCT g.id) n
+            FROM rg g JOIN acn a ON a.ac=g.ac JOIN release_rg r ON r.rg=g.id JOIN rlab x ON x.rel=r.id JOIN lab l ON l.id=x.label
+            WHERE l.name NOT LIKE '[%'
+            GROUP BY a.artist, l.name;
+    """)
     mark(con, "tags")
-    log(f"   {con.execute('SELECT count(*) FROM instrument').fetchone()[0]:,} artist instruments, {len(batch):,} artist genres")
+    log(f"   {con.execute('SELECT count(*) FROM instrument').fetchone()[0]:,} artist instruments, {len(batch):,} artist genres, "
+        f"{con.execute('SELECT count(*) FROM label').fetchone()[0]:,} artist labels")
 
 
-# ================================================================ 8 finish
+# ================================================================ 9 finish
 def step_finish(con, work: str, out: str, dumps: str) -> None:
-    log(f"8 finish: writing {out}")
+    log(f"9 finish: writing {out}")
     if os.path.exists(out):
         os.remove(out)
     con.execute("ATTACH ? AS o", (out,))
@@ -522,6 +603,8 @@ def step_finish(con, work: str, out: str, dumps: str) -> None:
         CREATE TABLE o.played AS SELECT * FROM played;
         CREATE TABLE o.instrument AS SELECT * FROM instrument WHERE n > 0;
         CREATE TABLE o.genre AS SELECT * FROM genre;
+        CREATE TABLE o.label AS SELECT * FROM label;
+        CREATE INDEX o.label_a ON label(artist);
         CREATE INDEX o.artist_name ON artist(name COLLATE NOCASE);
         CREATE INDEX o.artist_wiki ON artist(wiki);
         CREATE INDEX o.rel_a ON rel(a);
@@ -534,7 +617,7 @@ def step_finish(con, work: str, out: str, dumps: str) -> None:
     """)
     meta = {"version": VERSION, "built": time.strftime("%Y-%m-%d %H:%M"), "musicbrainz_dump": stamp,
             "licence": "MusicBrainz core data CC0; genre tags CC BY-NC-SA 3.0 (personal use); Wikipedia titles CC BY-SA"}
-    for t in ("artist", "rel", "played", "instrument", "genre"):
+    for t in ("artist", "rel", "played", "instrument", "genre", "label"):
         meta[f"rows_{t}"] = str(con.execute(f"SELECT count(*) FROM o.{t}").fetchone()[0])
     con.executemany("INSERT INTO o.meta VALUES (?,?)", meta.items())
     con.commit()
@@ -553,7 +636,7 @@ def main():
     ap.add_argument("--dumps", required=True, help="folder with the four downloads")
     ap.add_argument("--work", help="folder for unpacked tables and the work database (default: next to --dumps)")
     ap.add_argument("--out", help="the result (default: music.db next to --dumps)")
-    ap.add_argument("--redo", action="store_true", help="start the database steps (2-8) again; keeps the unpacked tables")
+    ap.add_argument("--redo", action="store_true", help="start the database steps (2-9) again; keeps the unpacked tables")
     a = ap.parse_args()
     parent = os.path.dirname(os.path.abspath(a.dumps))
     work = a.work or os.path.join(parent, "work")
@@ -587,6 +670,7 @@ def main():
     step_artists(con, work, L)
     step_links(con, work, L, links)
     step_credits(con, work, L, links)
+    step_albums(con, work)
     step_played(con, work)
     step_tags(con, work, L)
     step_finish(con, work, out, a.dumps)

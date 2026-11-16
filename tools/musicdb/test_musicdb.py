@@ -50,7 +50,9 @@ def build(d):
         "artist": [artist(1, "Orrin Vale", 1, 1938, 2019), artist(2, "Lena Marsh"), artist(3, "Tom Ide"),
                    artist(4, "The Hollow Quartet", 2, 1964, 1972), artist(5, "Odd\tName"),
                    artist(6, "Big Orchestra", 5)] + [artist(100 + k, f"Player {k}") for k in range(14)]
-                  + [artist(7, "Orrin Vale")],                                          # a namesake, no links
+                  + [artist(7, "Orrin Vale"),                                           # a namesake, no links
+                     [8, "89ad4ac3-39f7-470e-963a-56509c546377", "Various Artists", "Various Artists", None, None,
+                      None, None, None, None, 3, None, None, "", 0, "2026", "f", None, None]],
         "link_type": [lt(10, "artist", "artist", "member of band"), lt(11, "artist", "artist", "teacher"),
                       lt(12, "artist", "artist", "married"),                                # not kept
                       lt(20, "artist", "recording", "instrument"), lt(21, "artist", "release", "performer"),
@@ -67,13 +69,14 @@ def build(d):
                  [301, 31, None, None, None, None, None, None, 0, "2026", "f"]],
         "link_attribute_type": [[14, None, 14, 0, "g", "instrument", "", "2026"],
                                 [50, 14, 14, 0, "g", "drums", "", "2026"],
-                                [51, 14, 14, 0, "g", "alto saxophone", "", "2026"]],
-        "link_attribute": [[100, 50, "2026"], [200, 50, "2026"], [201, 51, "2026"]],
+                                [51, 14, 14, 0, "g", "alto saxophone", "", "2026"],
+                                [52, 14, 14, 0, "g", "membranophone", "", "2026"]],     # a class, not an instrument
+        "link_attribute": [[100, 50, "2026"], [200, 50, "2026"], [200, 52, "2026"], [201, 51, "2026"]],
         "l_artist_artist": [lrow(1, 100, 1, 4), lrow(2, 100, 2, 4), lrow(3, 101, 3, 1), lrow(4, 102, 1, 2)],
         "l_artist_recording": [lrow(1, 200, 1, 900), lrow(2, 201, 2, 900), lrow(3, 200, 1, 901), lrow(4, 201, 2, 901),
                                lrow(5, 203, 3, 900)]                                         # producer: no pair
                               + [lrow(10 + k, 200, 100 + k, 950) for k in range(14)] + [lrow(30, 200, 1, 950)],
-        "l_artist_release": [lrow(1, 202, 1, 700), lrow(2, 202, 3, 700)],
+        "l_artist_release": [lrow(1, 202, 1, 700), lrow(2, 202, 3, 700)],   # Tom Ide on Night Choir
         "url": [[1, "u1", "https://www.wikidata.org/wiki/Q101", 0, "2026"],
                 [2, "u2", "https://www.wikidata.org/wiki/Q102", 0, "2026"],
                 [3, "u3", "https://de.wikipedia.org/wiki/Tom_Ide", 0, "2026"],              # not English
@@ -82,15 +85,41 @@ def build(d):
         "recording": [[900, "r", "Night Choir", 1, 300, "", 0, "2026", "f"],
                       [901, "r", "Stone Hours", 1, 300, "", 0, "2026", "f"],
                       [950, "r", "Symphony", 1, 300, "", 0, "2026", "f"]],
-        "release": [[700, "r", "Kestrel Sessions", 1, 1, None, None, None, None, None, "", 0, -1, "2026"]],
+        # albums (release groups): 600 Night Choir (Vale & Marsh, 1967; original 700 + reissue 701),
+        # 601 Stone Hours (Vale, 1970), 602 a compilation with the orchestra, 604 Various Artists + Player 0
+        "release_group": [[600, "g", "Night Choir", 50, 1, "", 0, "2026"], [601, "g", "Stone Hours", 51, 1, "", 0, "2026"],
+                          [602, "g", "Symphony Collection", 52, 1, "", 0, "2026"],
+                          [604, "g", "Various Things", 53, 1, "", 0, "2026"]],
+        "release_group_secondary_type": [[1, "Compilation", None, 0, "", "g"], [2, "Live", None, 0, "", "g"]],
+        "release_group_secondary_type_join": [[602, 1, "2026"]],
+        "artist_credit_name": [[50, 0, 1, "Orrin Vale", " & "], [50, 1, 2, "Lena Marsh", ""], [51, 0, 1, "Orrin Vale", ""],
+                               [52, 0, 8, "Various Artists", ""], [53, 0, 8, "Various Artists", " & "],
+                               [53, 1, 100, "Player 0", ""]],
+        "release": [[700, "r", "Night Choir", 50, 600, None, None, None, None, None, "", 0, -1, "2026"],
+                    [701, "r", "Night Choir (reissue)", 50, 600, None, None, None, None, None, "", 0, -1, "2026"],
+                    [703, "r", "Stone Hours", 51, 601, None, None, None, None, None, "", 0, -1, "2026"],
+                    [702, "r", "Symphony Collection", 52, 602, None, None, None, None, None, "", 0, -1, "2026"],
+                    [705, "r", "Various Things", 53, 604, None, None, None, None, None, "", 0, -1, "2026"]],
+        "medium": [[800, 700, 1, 1, "", 0, "2026", 2, "m"], [801, 703, 1, 1, "", 0, "2026", 1, "m"],
+                   [802, 702, 1, 1, "", 0, "2026", 1, "m"]],
+        "track": [[1, "t", 900, 800, 1, "A1", "Night Choir", 1, 300, 0, "2026", "f"],
+                  [2, "t", 901, 800, 2, "A2", "Stone Hours", 1, 300, 0, "2026", "f"],
+                  [3, "t", 901, 801, 1, "A1", "Stone Hours", 1, 300, 0, "2026", "f"],
+                  [4, "t", 950, 802, 1, "A1", "Symphony", 52, 300, 0, "2026", "f"]],
+        "label": [[1, "l", "Kestrel Disk", None, None, None, None, None, None, None, 4, None, "", 0, "2026", "f"],
+                  [2, "l", "[no label]", None, None, None, None, None, None, None, 4, None, "", 0, "2026", "f"]],
+        "release_label": [[1, 700, 1, "KD-1", "2026"], [2, 701, 2, "", "2026"], [3, 703, 1, "KD-2", "2026"],
+                          [4, 705, None, "", "2026"]],
         "genre": [[1, "g", "free jazz", "", 0, "2026"], [2, "g", "jazz", "", 0, "2026"]],
-        "track": [[1, 2, 3]],                                                                # a table we skip
+        "work": [[1, 2, 3]],                                                                 # a table we skip
     }
     files = {f"mbdump/{k}": tsv(v) for k, v in core.items()}
     files["TIMESTAMP"] = b"2026-11-14 00:22:30.000000+00\n"
     tarbz2(os.path.join(d, "mbdump.tar.bz2"), files)
     derived = {"tag": [[1, "free jazz", 5], [2, "seen live", 9], [3, "jazz", 3]],
-               "artist_tag": [[1, 1, 4, "2026"], [1, 2, 9, "2026"], [1, 3, 1, "2026"], [2, 1, 0, "2026"]]}
+               "artist_tag": [[1, 1, 4, "2026"], [1, 2, 9, "2026"], [1, 3, 1, "2026"], [2, 1, 0, "2026"]],
+               "release_group_meta": [[600, 2, 1967, 5, None, None, 0], [601, 1, 1970, None, None, None, 0],
+                                      [602, 1, None, None, None, None, 0], [604, 1, 1999, None, None, None, 0]]}
     tarbz2(os.path.join(d, "mbdump-derived.tar.bz2"), {f"mbdump/{k}": tsv(v) for k, v in derived.items()})
     with gzip.open(os.path.join(d, "enwiki-latest-page_props.sql.gz"), "wt", encoding="utf-8") as f:
         # the real Nov 2026 layout: header line, then one row per line
@@ -134,12 +163,17 @@ def main():
         assert (1, 4, "member of band", 1964, 1972, "drums") in rel, rel
         assert (3, 1, "teacher", None, None, None) in rel, rel
         assert not any(r[2] == "married" for r in rel), rel
-        played = {(a, b): (r, s, e) for a, b, r, s, e in con.execute("SELECT * FROM played")}
-        assert played[(1, 2)][0] == 2 and played[(1, 2)][2] in ("Night Choir", "Stone Hours"), played
-        assert played[(1, 3)] == (0, 1, "Kestrel Sessions"), played     # release credit; producer not counted
-        assert not any(a >= 100 or b >= 100 for a, b in played), played  # 15 on one recording: no pairs
+        played = {(a, b): rest for a, b, *rest in con.execute("SELECT a, b, albums, tracks, example, year FROM played")}
+        assert played[(1, 2)] == [2, 2, "Night Choir", 1967], played   # 2 albums (reissue counted once), 2 tracks
+        assert played[(1, 3)] == [1, 0, "Night Choir", 1967], played   # release credit; producer not counted
+        assert played[(2, 3)] == [1, 0, "Night Choir", 1967], played
+        assert not any(a >= 100 or b >= 100 for a, b in played), played  # orchestra (15) / compilation: no pairs
+        assert not any(8 in k for k in played), played                    # Various Artists never pairs
         ins = set(con.execute("SELECT artist, name, n FROM instrument"))
         assert (1, "drums", 3) in ins and (2, "alto saxophone", 2) in ins, ins
+        assert not any(n == "membranophone" for _, n, _ in ins), ins
+        labels = set(con.execute("SELECT artist, name, n FROM label"))
+        assert labels == {(1, "Kestrel Disk", 2), (2, "Kestrel Disk", 1)}, labels   # "[no label]" left out
         gen = set(con.execute("SELECT artist, name, votes FROM genre"))
         assert gen == {(1, "free jazz", 4), (1, "jazz", 1)}, gen       # "seen live" isn't a genre; 0 votes dropped
         meta = dict(con.execute("SELECT key, value FROM meta"))
@@ -150,7 +184,8 @@ def main():
         assert look.startswith("Orrin Vale  (Person, 1938–2019, Harrow Bend)  · Wikipedia: Orrin Vale"), look
         assert "member of:" in look and "The Hollow Quartet  (1964–1972, drums)  ·W" in look, look
         assert "teachers:" in look and "Tom Ide" in look, look
-        assert "Lena Marsh  (2 recordings)  ·W" in look, look
+        assert "Lena Marsh  (2 albums, 2 tracks)  ·W\n      first: Night Choir (1967)" in look, look
+        assert "labels (albums): Kestrel Disk (2)" in look, look
         assert "also called this" in look, look                        # the namesake is mentioned, not chosen
         print("✅ build_musicdb + musicdb: all checks passed")
 

@@ -37,9 +37,14 @@ database steps again but keeps the unpacked tables. The unpack is the slow part.
 
 - `artist`: every MusicBrainz artist, with type, years, area, English Wikipedia title (via Wikidata) and Q-id
 - `rel`: member of band, collaboration, supporting musician, teacher, subgroup, founder, conductor … (with years, instruments)
-- `played`: pairs credited as performers on the same recordings / releases (recordings with more than 12 credited performers, e.g. orchestras, are left out), with counts and an example title
-- `instrument`: instruments per artist, from their performer credits
+- `played`: pairs of artists on the same **albums** (MusicBrainz release groups, so reissues count once;
+  from performer credits on tracks and releases, plus the album's own artist credit such as
+  "Milford Graves & Don Pullen") and the same **tracks**, with the earliest shared album and its year.
+  Left out: various-artists compilations, DJ mixes, mixtapes, albums with more than 20 artists and
+  tracks with more than 12 performers (orchestras, choirs)
+- `instrument`: instruments per artist, from their performer credits (classes like "membranophone" left out)
 - `genre`: MusicBrainz genre tags per artist, with votes
+- `label`: labels of the artist's own albums, with how many albums ("[no label]" left out)
 - `meta`: dump date, row counts, licences
 
 Licences: MusicBrainz core data CC0; genre tags CC BY-NC-SA 3.0 (fine for this personal,

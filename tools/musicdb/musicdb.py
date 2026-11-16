@@ -8,9 +8,9 @@ musicdb: look an artist up in music.db (made by build_musicdb.py from MusicBrain
 
 Finds the artist by Wikipedia title or name (the one with a Wikipedia article and the most
 connections wins; others with the same name are listed), then prints:
-  what MusicBrainz knows: type, years, area, genres, instruments
+  what MusicBrainz knows: type, years, area, genres, instruments, labels
   relationships: bands, collaborations, teachers, … (with years and instruments)
-  played with: artists credited on the same recordings / releases, most first, with an example
+  played with: artists on the same albums (and tracks), most albums first, with their earliest shared album
 Default database: music.db next to this script, else ~/musicdb/music.db.
 Data: MusicBrainz (CC0; genre tags CC BY-NC-SA). Standard library only.
 """
@@ -26,7 +26,7 @@ try:
 except Exception:
     pass
 
-VERSION = "0.1"
+VERSION = "0.2"
 REL_WORDS = {   # (a -> b, b -> a): how to say it from each side
     "member of band": ("member of", "members"),
     "collaboration": ("collaborated on", "collaborators"),
@@ -100,10 +100,14 @@ def main():
     g = [r[0] for r in con.execute("SELECT name FROM genre WHERE artist=? ORDER BY votes DESC LIMIT 6", (aid,))]
     ins = [f"{r[0]} ({r[1]})" for r in con.execute(
         "SELECT name, n FROM instrument WHERE artist=? ORDER BY n DESC LIMIT 8", (aid,))]
+    labs = [f"{r[0]} ({r[1]})" for r in con.execute(
+        "SELECT name, n FROM label WHERE artist=? ORDER BY n DESC LIMIT 8", (aid,))]
     if g:
         print("  genres: " + ", ".join(g))
     if ins:
         print("  instruments on credits: " + ", ".join(ins))
+    if labs:
+        print("  labels (albums): " + ", ".join(labs))
     if others:
         print("  (also called this: " + "; ".join(label(o) for o in others[:4]) + ")")
 
@@ -126,18 +130,19 @@ def main():
                 print(f"   {name}" + (f"  ({extra})" if extra else "") + ("  ·W" if wiki else ""))
 
     played = con.execute("""
-        SELECT x.name, x.wiki, x.type, p.recordings, p.releases, p.example FROM played p
+        SELECT x.name, x.wiki, p.albums, p.tracks, p.example, p.year FROM played p
         JOIN artist x ON x.id = CASE WHEN p.a=? THEN p.b ELSE p.a END
         WHERE p.a=? OR p.b=?
-        ORDER BY p.recordings + 3 * p.releases DESC LIMIT ?
+        ORDER BY p.albums DESC, p.tracks DESC LIMIT ?
     """, (aid, aid, aid, a.top)).fetchall()
     if played:
-        print("\nPlayed with (shared credits)")
-        print("----------------------------")
-        for name, wiki, typ, nrec, nrel, ex in played:
-            counts = ", ".join(x for x in (f"{nrec} recording{'s' * (nrec != 1)}" if nrec else "",
-                                           f"{nrel} release{'s' * (nrel != 1)}" if nrel else "") if x)
-            print(f"   {name}  ({counts})" + ("  ·W" if wiki else "") + (f"\n      e.g. {ex}" if ex else ""))
+        print("\nPlayed with (shared albums and tracks)")
+        print("--------------------------------------")
+        for name, wiki, nalb, ntr, ex, yr in played:
+            counts = ", ".join(x for x in (f"{nalb} album{'s' * (nalb != 1)}" if nalb else "",
+                                           f"{ntr} track{'s' * (ntr != 1)}" if ntr else "") if x)
+            first = f"\n      first: {ex}" + (f" ({yr})" if yr else "") if ex else ""
+            print(f"   {name}  ({counts})" + ("  ·W" if wiki else "") + first)
     if not rels and not played:
         print("\nMusicBrainz has no relationships or performer credits for this artist yet.")
     print("\n·W = has an English Wikipedia article.  Data: MusicBrainz.")

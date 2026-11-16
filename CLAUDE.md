@@ -234,6 +234,12 @@ Gayle, Murray, H. Glover… (finds people the Wikipedia ranking missed). Known r
 titles not albums; generic instrument classes ("membranophone") show. Fix idea: map recording →
 release via track/medium, count shared releases, show album titles. Then copy music.db to exlo and
 fold it into connections.py.
+**0.4 (16 Nov 2026, built, tested on made-up dumps):** credits traced to **albums** (release groups:
+reissues once) incl. the album's own artist credit; compilations / DJ-mix / mixtape and "Various
+Artists" left out; `played(a, b, albums, tracks, example, year)` ranked by albums; generic instrument
+classes dropped; `label(artist, name, n)`. Needs 9 more tables (track, medium, release_group, …,
+release_group_meta in derived): first run re-unpacks (~12 min). Run with `--redo`. Wikidata: JC asked;
+advised to leave it out until a real question needs it (mainly non-music: works, influences, movements).
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
