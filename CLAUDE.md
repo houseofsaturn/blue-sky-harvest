@@ -204,7 +204,14 @@ Ranking looked right (NYAQ, Ayler, Cyrille, Logan, Pullen, W. Parker; Graves/Pul
 Bäbi, NYAQ albums; Tzadik, DIW, ESP; free jazz). 0.2 fixes: infobox clean-up (CSS, hlists, hidden
 dates, ref marks), sentences split after "." inside brackets / quotes, "rel." etc., reason sentence
 centred on the name, records no longer tie (shared cap 0.5). Open: ESP-Disk ranks low (no link back
-though 6 mentions); JC to judge who's missing.
+though 6 mentions); JC to judge who's missing. Second run (0.2, --top 15) looked good to JC.
+Parked: repeated reason sentences (several links share one sentence, e.g. the opening; fix idea: use
+another sentence, else the target's own first line). Scores = mentioned 0.30 + lead 0.15 + infobox
+0.10 + links back 0.25 + shared 0.20 (explained to JC; hide numbers in Discord).
+**Next (JC at exlomax, 16 Nov 2026 pm): build the music database on exlomax** from Wikidata (facts:
+genre, label, instrument, member of, active years; truthy dump ~40 GB bz2) + Wikipedia categories +
+MusicBrainz (CC0; performer credits, member-of-band, collaboration). Output: one small file for exlo /
+fatline. Downloads are big: start them first.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
