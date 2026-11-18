@@ -174,6 +174,9 @@ def main():
         assert not any(n == "membranophone" for _, n, _ in ins), ins
         labels = set(con.execute("SELECT artist, name, n FROM label"))
         assert labels == {(1, "Kestrel Disk", 2), (2, "Kestrel Disk", 1)}, labels   # "[no label]" left out
+        la = set(con.execute("SELECT label, artist, album, year FROM label_album"))
+        assert la == {("Kestrel Disk", 1, "Night Choir", 1967), ("Kestrel Disk", 2, "Night Choir", 1967),
+                      ("Kestrel Disk", 1, "Stone Hours", 1970)}, la
         gen = set(con.execute("SELECT artist, name, votes FROM genre"))
         assert gen == {(1, "free jazz", 4), (1, "jazz", 1)}, gen       # "seen live" isn't a genre; 0 votes dropped
         meta = dict(con.execute("SELECT key, value FROM meta"))

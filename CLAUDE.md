@@ -267,9 +267,26 @@ with `wget -bc` (latest nopic; ~60-70 GB; 20-45 MB/s, ~35 min; log `~/zim/wget-l
 name with `curl -sL https://download.kiwix.org/zim/wikipedia/ | grep -o 'wikipedia_en_all_nopic_[0-9-]*\.zim' | sort -u | tail -1`
 (-L needed: the page redirects). **Download finished; Graves test on fatline passed (16 Nov 2026):**
 `connections 0.3 · wikipedia_en_all_nopic_2026-06.zim · music.db`, 138 articles in 2.5 s, same ranking as
-exlo. Small bug seen: "Yoruba language" (non-musical-interests section) shown under Labels; the label
-test in `Article.kind()` is too loose. fatline now has everything the music conversations need.
+exlo. Small bug seen: "Yoruba language" shown under Labels (fixed in 0.4, see below). fatline now has everything the music conversations need.
 Next: gleaner #listenings commands (the command language) calling connections.py on fatline.
+**connections 0.4 (18 Nov 2026, from JC's tests of IRIDA Records, RVNG Intl., "nirvana")**: (1) **lower case finds the
+page** (`Wiki.exact`: as typed, capital first letter, Title Case) instead of a title-search guess, which had returned
+the *Nirvana* greatest-hits album. (2) **Ambiguous names are not guessed** (`choose_seed`): a name whose page is a
+disambiguation page or not music ("Nirvana" the concept) is checked for music pages (its disambiguation page,
+"Name (band)", "(singer)", "(album)", "(record label)" …); one musician/label reading is used and the others named;
+with music.db the far better connected one wins (>= 20 connections and 5x the next); otherwise the options are listed
+(exit 2) and JC asks again with the full title. (3) **A label is shaped like a label**: "Artists on the label", each
+with "On the label: records (years)" (the label article's linked records hang on the artist named in their first
+sentence; MusicBrainz adds the rest), then "Other records", "Related labels" (score >= 0.20), scenes; music.db
+`label` roster ranks by albums on the label (score part "on label" 0.30, ÷1.30). Records/scenes/labels no longer
+pull an artist's MusicBrainz partners (the Nirvana *album* had shown the band's). (4) **`kind()` label test**: the
+label word must be what the page *is* ("is a(n) … record label"), so photographers and languages are no longer
+labels (Charles Peterson, Yoruba). (5) **No sentence is printed twice**: the next-best sentence is used, else
+"(named in the same sentence as X)" (closes the parked duplicate-sentence item). (6) music.db 0.5 adds
+`label_album(label, artist, album, year)` and `label(name)` index: **to get record titles on labels, rerun
+`build_musicdb.py` on exlomax *without* --redo** (few minutes), then copy music.db to exlo/fatline. Until then
+labels list artists with album counts only. `musicdb.py "Label name"` also prints a roster. Tests extended (made-up
+label, look-alike "Hush", "Ember"); all pass.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the

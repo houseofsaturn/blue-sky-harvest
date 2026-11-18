@@ -11,6 +11,8 @@ connections wins; others with the same name are listed), then prints:
   what MusicBrainz knows: type, years, area, genres, instruments, labels
   relationships: bands, collaborations, teachers, … (with years and instruments)
   played with: artists on the same albums (and tracks), most albums first, with their earliest shared album
+If the name is a record label rather than an artist, it prints the label's roster instead: each artist
+with the albums they put out on it (needs music.db 0.5 for the album titles).
 Default database: music.db next to this script, else ~/musicdb/music.db.
 Data: MusicBrainz (CC0; genre tags CC BY-NC-SA). Standard library only.
 """
@@ -26,7 +28,7 @@ try:
 except Exception:
     pass
 
-VERSION = "0.2"
+VERSION = "0.3"
 REL_WORDS = {   # (a -> b, b -> a): how to say it from each side
     "member of band": ("member of", "members"),
     "collaboration": ("collaborated on", "collaborators"),
@@ -84,6 +86,34 @@ def label(row):
     return s + ("  · Wikipedia: " + wiki.replace("_", " ") if wiki else "")
 
 
+def show_label(con, name, top):
+    """a label's roster: artists with their albums on it. True if the name is a label in music.db"""
+    try:
+        roster = con.execute("""SELECT a.id, a.name, a.wiki, l.n, l.name FROM label l JOIN artist a ON a.id=l.artist
+                                WHERE l.name = ? COLLATE NOCASE ORDER BY l.n DESC, a.name LIMIT ?""", (name.strip(), top * 3)).fetchall()
+    except sqlite3.Error:
+        return False
+    if not roster:
+        return False
+    print(f"{roster[0][4]}  (label)")
+    print("\nArtists and their albums on the label")
+    print("-------------------------------------")
+    try:
+        con.execute("SELECT 1 FROM label_album LIMIT 1")
+        have_albums = True
+    except sqlite3.Error:
+        have_albums = False
+    for aid, aname, wiki, n, lname in roster[:top]:
+        print(f"   {aname}  ({n} album{'s' * (n != 1)})" + ("  ·W" if wiki else ""))
+        if have_albums:
+            albs = con.execute("SELECT album, year FROM label_album WHERE label = ? COLLATE NOCASE AND artist = ? "
+                               "ORDER BY year IS NULL, year, album LIMIT 6", (lname, aid)).fetchall()
+            if albs:
+                print("      " + " · ".join(f"{t}" + (f" ({y})" if y else "") for t, y in albs))
+    print("\n·W = has an English Wikipedia article.  Data: MusicBrainz.")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser(description="Look an artist up in music.db (MusicBrainz).")
     ap.add_argument("name")
@@ -92,6 +122,8 @@ def main():
     a = ap.parse_args()
     con = sqlite3.connect(find_db(a.db))
     art, others = find_artist(con, a.name)
+    if not art and show_label(con, a.name, a.top):
+        return
     if not art:
         like = [r[0] for r in con.execute("SELECT name FROM artist WHERE name LIKE ? LIMIT 8", (f"%{a.name}%",))]
         sys.exit(f"No artist called “{a.name}”." + (" Close: " + "; ".join(like) if like else ""))

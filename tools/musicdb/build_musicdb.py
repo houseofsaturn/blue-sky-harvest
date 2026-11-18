@@ -25,6 +25,7 @@ Steps (each one is skipped if already done, so you can stop and run it again):
              various-artists compilations, DJ mixes and mixtapes are left out
   7 played   pairs of artists on the same albums (and the same tracks), with the earliest album as example
   8 tags     genres (MusicBrainz genre names only), instruments, and labels per artist
+  8b label albums  which albums each label put out, per credited artist (for label discographies; 0.5)
   9 finish   copy the results into the small --out file, with indexes
 
 What ends up in music.db:
@@ -34,6 +35,7 @@ What ends up in music.db:
   instrument(artist, name, n)                  from performer credits (generic classes left out)
   genre(artist, name, votes)
   label(artist, name, n)                       labels of the artist's own albums, n = albums
+  label_album(label, artist, album, year)      what a label released, per credited artist (0.5)
   meta(key, value)                             dump dates, counts, build time
 """
 from __future__ import annotations
@@ -51,7 +53,7 @@ import time
 from collections import Counter
 from urllib.parse import unquote
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 try:                                    # Windows consoles can choke on non-ASCII names
     sys.stdout.reconfigure(errors="replace")
@@ -587,6 +589,24 @@ def step_tags(con, work: str, L: dict) -> None:
         f"{con.execute('SELECT count(*) FROM label').fetchone()[0]:,} artist labels")
 
 
+# ================================================================ 8b albums on each label (for label discographies)
+def step_label_albums(con) -> None:
+    if done(con, "label_albums"):
+        log("8b label albums: already done")
+        return
+    log("8b label albums: which albums each label put out, per credited artist")
+    con.executescript("""
+        DROP TABLE IF EXISTS label_album;
+        CREATE TABLE label_album AS
+            SELECT DISTINCT l.name label, a.artist, g.name album, g.year
+            FROM rg g JOIN acn a ON a.ac=g.ac JOIN release_rg r ON r.rg=g.id
+                 JOIN rlab x ON x.rel=r.id JOIN lab l ON l.id=x.label
+            WHERE l.name NOT LIKE '[%';
+    """)
+    mark(con, "label_albums")
+    log(f"   {con.execute('SELECT count(*) FROM label_album').fetchone()[0]:,} label albums")
+
+
 # ================================================================ 9 finish
 def step_finish(con, work: str, out: str, dumps: str) -> None:
     log(f"9 finish: writing {out}")
@@ -604,7 +624,10 @@ def step_finish(con, work: str, out: str, dumps: str) -> None:
         CREATE TABLE o.instrument AS SELECT * FROM instrument WHERE n > 0;
         CREATE TABLE o.genre AS SELECT * FROM genre;
         CREATE TABLE o.label AS SELECT * FROM label;
+        CREATE TABLE o.label_album AS SELECT * FROM label_album;
         CREATE INDEX o.label_a ON label(artist);
+        CREATE INDEX o.label_n ON label(name COLLATE NOCASE);
+        CREATE INDEX o.label_album_l ON label_album(label COLLATE NOCASE, artist);
         CREATE INDEX o.artist_name ON artist(name COLLATE NOCASE);
         CREATE INDEX o.artist_wiki ON artist(wiki);
         CREATE INDEX o.rel_a ON rel(a);
@@ -617,7 +640,7 @@ def step_finish(con, work: str, out: str, dumps: str) -> None:
     """)
     meta = {"version": VERSION, "built": time.strftime("%Y-%m-%d %H:%M"), "musicbrainz_dump": stamp,
             "licence": "MusicBrainz core data CC0; genre tags CC BY-NC-SA 3.0 (personal use); Wikipedia titles CC BY-SA"}
-    for t in ("artist", "rel", "played", "instrument", "genre", "label"):
+    for t in ("artist", "rel", "played", "instrument", "genre", "label", "label_album"):
         meta[f"rows_{t}"] = str(con.execute(f"SELECT count(*) FROM o.{t}").fetchone()[0])
     con.executemany("INSERT INTO o.meta VALUES (?,?)", meta.items())
     con.commit()
@@ -673,6 +696,7 @@ def main():
     step_albums(con, work)
     step_played(con, work)
     step_tags(con, work, L)
+    step_label_albums(con)
     step_finish(con, work, out, a.dumps)
     log(f"✅ all done in {(time.time() - t0) / 60:,.1f} min. Try:  py musicdb.py \"Milford Graves\" --db {out}")
 

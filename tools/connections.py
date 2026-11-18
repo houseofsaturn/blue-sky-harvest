@@ -14,6 +14,13 @@ the connection.
     python3 connections.py "Milford Graves" --why         # show how each score was made
     python3 connections.py "Milford Graves" --zim /path/to/wikipedia.zim
     python3 connections.py "Milford Graves" --no-musicdb  # Wikipedia only
+    python3 connections.py "RVNG Intl."                   # a label: its artists, each with their records on it
+
+What you type decides what you get: the page's own infobox and first sentence say whether it is an
+artist, a record, a label or a scene, and the answer is shaped to match (a label gets a roster of artists
+with their records; an artist gets the people and records around them). A name that could be several things
+("Nirvana") is not guessed: if one reading clearly dominates it is used and the others are named; otherwise
+the options are listed and you pick one by its full title, e.g. "Nirvana (band)".
 
 If music.db (tools/musicdb, built from MusicBrainz) is found, it adds the hard evidence: albums
 and tracks played on together, bands, teachers. Musicians who played with the artist but aren't
@@ -59,7 +66,7 @@ try:
 except ImportError:
     sys.exit("connections: needs lxml.  exlo: sudo apt install python3-lxml   other: pip install lxml")
 
-VERSION = "0.3"
+VERSION = "0.4"
 
 # ---------------------------------------------------------------- what to skip (from WIKISTACK's parser)
 SKIP_CLASS = {"mw-editsection", "navbox", "navbox-styles", "metadata", "noprint", "sidebar", "ambox", "hatnote",
@@ -106,7 +113,11 @@ MUSIC_WORDS = re.compile(
     r"organist|keyboardist|multi-instrumentalist|rapper|DJ|record producer|songwriter|improviser|band|ensemble|"
     r"quartet|quintet|trio|sextet|septet|octet|orchestra|duo|group|collective)\b", re.I)
 RECORD_WORDS = re.compile(r"\b(album|EP|single|song|recording|live album|compilation|soundtrack|composition)\b", re.I)
-LABEL_WORDS = re.compile(r"\brecord label\b|\b(label|record company|imprint)\b", re.I)
+# "X is a(n) [American independent] record label …": the label word must be the thing X *is*,
+# not a word later in the sentence (a photographer "known for his Sub Pop label work" is no label)
+LABEL_HEAD = re.compile(r"^\s*(?:an?|the)\s+(?:(?!(?:known|for|of|who|that|which|with|by|in|at|from|on|as|and|or)\b)"
+                        r"[\w'’.&-]+\s+){0,6}?(?:record label|label|record company|recording company|imprint|"
+                        r"record imprint|sublabel)\b", re.I)
 SCENE_WORDS = re.compile(r"\b(genre|style of (?:music|jazz)|music(?:al)? (?:movement|scene|style)|subgenre|"
                          r"movement|scene|tradition|school of)\b", re.I)
 # a place: "X is a city in …", "X was a jazz club on …"
@@ -175,9 +186,19 @@ class Wiki:
             e = e.get_redirect_entry()
         return None
 
+    def exact(self, name: str):
+        """the article with exactly this title: as typed, then with a capital first letter, then Title Case.
+        (Archive paths are case-sensitive; "nirvana" must find "Nirvana", not a title-search guess.)"""
+        n = norm(name)
+        for v in dict.fromkeys((n, n[:1].upper() + n[1:], n.title())):
+            e = self.entry(v)
+            if e is not None:
+                return e
+        return None
+
     def find(self, name: str):
-        """the article for a name: exact path/title first, then the top title suggestion"""
-        e = self.entry(name.strip())
+        """the article for a name: exact title first, then the top title suggestion"""
+        e = self.exact(name)
         if e is None:
             for p in suggest(self.zim, name, 5):
                 e = self.entry(p)
@@ -239,6 +260,7 @@ class Article:
         self.title = entry.title or entry.path.replace("_", " ")
         self.base = posixpath.dirname(entry.path)
         raw = Wiki.html(entry)
+        self.is_disambig_box = bool(re.search(rb"dmbox-disambig|mw-disambig|disambigbox", raw))
         self.all_links = raw_links(raw, self.base)
         root = lxml.html.fromstring(raw)
         try:
@@ -254,11 +276,14 @@ class Article:
                 tbl.drop_tree()
                 break
         self.first_sentence = ""
+        self.first_para = ""            # the first paragraph however short: "Nirvana most commonly refers to:"
         self.mentions = {}              # path -> [(section, sentence, in_lead)]
         self.sentences = 0
         if not full:
             for p in content.iter("p"):
                 t = REFMARK.sub("", norm(p.text_content()))
+                if t and not self.first_para:
+                    self.first_para = t[:200]
                 if len(t) > 40:
                     self.first_sentence = (split_sentences(t) or [t])[0]
                     break
@@ -319,6 +344,8 @@ class Article:
             if len(text) < 3:
                 continue
             sents = split_sentences(text)
+            if not self.first_para and el.tag == "p":
+                self.first_para = text[:200]
             if not self.first_sentence and el.tag == "p" and len(text) > 40:
                 self.first_sentence = sents[0] if sents else text
             self.sentences += len(sents)
@@ -331,6 +358,12 @@ class Article:
                 lst = self.mentions.setdefault(p, [])
                 if all(sent != x[1] for x in lst):
                     lst.append((section or "(opening)", sent, lead, anchor))
+
+    def is_disambig(self) -> bool:
+        """a disambiguation page: "X may refer to:", "X most commonly refers to:", or Wikipedia's own box"""
+        return self.is_disambig_box or bool(re.search(
+            r"\b(?:may|might|can|could|most commonly|usually|often|also)\s+(?:also\s+)?(?:refer|be used to refer|refers) to\b"
+            r"|\brefers? to\b.{0,40}:$", self.first_para or self.first_sentence))
 
     def kind(self) -> str:
         """musician / record / label / scene / person / place / other, from the infobox and first sentence"""
@@ -346,7 +379,7 @@ class Article:
                      "spinoff of", "spinoffs"} or "musical-artist" in ic \
                 or ({"genres", "genre"} & labels and {"labels", "label"} & labels):
             return "musician"
-        if labels & {"distributor(s)", "distributor"} or LABEL_WORDS.search(what) and "label" in what.lower():
+        if labels & {"distributor(s)", "distributor"} or LABEL_HEAD.search(what):
             return "label"
         if labels & {"stylistic origins", "cultural origins", "typical instruments", "derivative forms",
                      "subgenres", "fusion genres"}:
@@ -379,6 +412,7 @@ MB_REL = {   # (seed -> other, other -> seed)
     "artistic director": ("artistic director of", "artistic director"),
 }
 MB_SPLIT = 1.35         # Wikipedia parts add up to 1.00, music.db parts to 0.35: scores are divided by this
+MB_SPLIT_LABEL = 1.30   # for a label the music.db part (albums on the label) is worth 0.30
 
 
 def find_musicdb(arg):
@@ -416,6 +450,37 @@ class MusicDB:
         return max((r[0] for r in rows), key=lambda i: self.con.execute(
             "SELECT count(*) FROM played WHERE a=? OR b=?", (i, i)).fetchone()[0])
 
+    def label_roster(self, seed: "Article", limit: int = 60):
+        """for a label: (name as MusicBrainz has it, {artist id: partner-like dict}) from the label table,
+        artists with the most albums on it first. ({}, "") if MusicBrainz doesn't know the label."""
+        base = re.sub(r"\s*\((?:[^()]*\b(?:label|records?|company|imprint)\b[^()]*)\)\s*$", "", seed.title, flags=re.I).strip()
+        for name in dict.fromkeys((base, base.rstrip("."), base + ".")):
+            rows = self.con.execute("""SELECT a.id, a.name, a.wiki, a.type, l.n, l.name FROM label l
+                                       JOIN artist a ON a.id = l.artist WHERE l.name = ? COLLATE NOCASE
+                                       ORDER BY l.n DESC, a.name LIMIT ?""", (name, limit)).fetchall()
+            if rows:
+                return rows[0][5], {oid: {"id": oid, "name": nm, "wiki": wiki, "type": typ, "albums": n, "tracks": 0,
+                                          "example": None, "year": None, "rels": [], "on_label": True}
+                                    for oid, nm, wiki, typ, n, _ in rows}
+        return "", {}
+
+    def label_albums(self, label: str, artist: int, limit: int = 12) -> list:
+        """[(album, year)] this artist put out on this label (needs music.db 0.5), earliest first"""
+        try:
+            return self.con.execute("""SELECT album, year FROM label_album WHERE label = ? COLLATE NOCASE AND artist = ?
+                                       ORDER BY year IS NULL, year, album LIMIT ?""", (label, artist, limit)).fetchall()
+        except sqlite3.Error:
+            return []
+
+    def weight_for_title(self, wiki_path: str) -> int:
+        """how connected the MusicBrainz artist with this Wikipedia title is (0 if none): to pick the
+        big "Nirvana (band)" over a small namesake"""
+        title = posixpath.basename(wiki_path)
+        n = 0
+        for (i,) in self.con.execute("SELECT id FROM artist WHERE wiki=?", (title,)).fetchall():
+            n += self.con.execute("SELECT count(*) FROM played WHERE a=? OR b=?", (i, i)).fetchone()[0]
+        return n
+
     def partners(self, aid: int, limit: int = 60) -> dict:
         """other artist id -> {name, wiki, type, albums, tracks, example, year, rels: [text]}"""
         out = {}
@@ -423,7 +488,7 @@ class MusicDB:
                 SELECT x.id, x.name, x.wiki, x.type, p.albums, p.tracks, p.example, p.year FROM played p
                 JOIN artist x ON x.id = CASE WHEN p.a=? THEN p.b ELSE p.a END
                 WHERE p.a=? OR p.b=? ORDER BY p.albums DESC, p.tracks DESC LIMIT ?""", (aid, aid, aid, limit)):
-            out[oid] = {"name": name, "wiki": wiki, "type": typ, "albums": alb or 0, "tracks": trk or 0,
+            out[oid] = {"id": oid, "name": name, "wiki": wiki, "type": typ, "albums": alb or 0, "tracks": trk or 0,
                         "example": ex, "year": yr, "rels": []}
         for oid, name, wiki, typ, kind, rev, b, e in self.con.execute("""
                 SELECT x.id, x.name, x.wiki, x.type, r.kind, 0, r.begin, r.end FROM rel r JOIN artist x ON x.id=r.b WHERE r.a=?
@@ -432,7 +497,7 @@ class MusicDB:
                 (aid, aid)):
             if kind not in MB_REL:
                 continue
-            d = out.setdefault(oid, {"name": name, "wiki": wiki, "type": typ, "albums": 0, "tracks": 0,
+            d = out.setdefault(oid, {"id": oid, "name": name, "wiki": wiki, "type": typ, "albums": 0, "tracks": 0,
                                      "example": None, "year": None, "rels": []})
             yrs = f"{b or ''}–{e or ''}" if (b or e) else ""
             d["rels"].append(MB_REL[kind][rev] + (f" ({yrs})" if yrs else ""))
@@ -454,6 +519,12 @@ def mb_text(m: dict) -> str:
 
 
 # ================================================================ ranking
+class Ranked(list):
+    """the ranked connections, plus what the seed was read as (label_mode) and its MusicBrainz name"""
+    label_mode = False
+    label_name = ""
+
+
 def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" = None):
     infobox_links = {}
     for label, _, links in seed.infobox_rows:
@@ -491,11 +562,19 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
         print(f"\r   read {len(candidates)} linked articles in {time.time() - t0:.1f}s" + " " * 10, file=sys.stderr)
     for r in out.values():
         r["mb"] = None
+    seed_kind = seed.kind()
+    label_mode = seed_kind == "label"
+    label_name = ""
     if mb:
-        aid = mb.artist_for(seed)
-        if aid is not None:
+        partners = {}
+        if label_mode:                                       # a label: its roster (artists, albums on it)
+            label_name, partners = mb.label_roster(seed)
+        elif seed_kind not in ("record", "scene"):           # an artist: who they played with
+            aid = mb.artist_for(seed)
+            partners = mb.partners(aid) if aid is not None else {}
+        if partners:
             added = 0
-            for oid, m in mb.partners(aid).items():
+            for oid, m in partners.items():
                 e = wiki.entry(m["wiki"]) if m["wiki"] else None
                 if e is not None and e.path in out:
                     out[e.path]["mb"] = m
@@ -521,6 +600,7 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
                                         "offwiki": True}
             if progress:
                 print(f"   music.db: {added} more musicians from MusicBrainz", file=sys.stderr)
+    split = MB_SPLIT_LABEL if label_mode else MB_SPLIT
     for r in out.values():
         n = len(r["mentions"])
         parts = {
@@ -530,15 +610,48 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
             "links back": 0.25 * (1 if r["back"] else 0),
             "shared": 0.20 * min(1.0, r["shared"] / 0.5),       # cosine 0.5+ counts as fully shared
         }
-        if mb:
+        if mb and label_mode:
+            m = r.get("mb")
+            parts["on label"] = 0.30 * min(m["albums"], 4) / 4 if m else 0.0
+            parts = {k: v / split for k, v in parts.items()}
+        elif mb:
             m = r.get("mb")
             parts["played"] = (0.25 * min(m["albums"], 3) / 3 if m and m["albums"] else
                                0.10 * min(m["tracks"], 10) / 10 if m and m["tracks"] else 0.0)
             parts["band/teacher"] = 0.10 if m and m["rels"] else 0.0
-            parts = {k: v / MB_SPLIT for k, v in parts.items()}
+            parts = {k: v / split for k, v in parts.items()}
         r["parts"] = parts
         r["score"] = round(sum(parts.values()), 3)
-    return sorted(out.values(), key=lambda r: (-r["score"], -len(r["mentions"]), -r["shared"]))
+    ranked = Ranked(sorted(out.values(), key=lambda r: (-r["score"], -len(r["mentions"]), -r["shared"])))
+    ranked.label_mode, ranked.label_name = label_mode, label_name
+    if label_mode:
+        attach_works(ranked)
+    return ranked
+
+
+def attach_works(ranked: list) -> None:
+    """for a label: hang each linked record on the artist its first sentence names ("… album by Blondes"),
+    so the label reads as artists with their records, not two loose lists"""
+    artists = [(re.sub(r"\s*\(.*?\)\s*$", "", r["title"]), r) for r in ranked if r["kind"] == "musician"]
+    for rec in ranked:
+        if rec["kind"] != "record" or not rec["first"]:
+            continue
+        best = None
+        for nm, a in artists:
+            if len(nm) < 3:
+                continue
+            m = re.search(r"(?<!\w)" + re.escape(nm) + r"(?!\w)", rec["first"])
+            if m and (best is None or m.start() < best[0]):
+                best = (m.start(), a)
+        if best:
+            yr = re.search(r"released[^.]{0,40}?\b((?:19|20)\d\d)\b", rec["first"]) or re.search(r"\b((?:19|20)\d\d)\b", rec["first"])
+            best[1].setdefault("works", []).append((plain_record(rec["title"]), int(yr.group(1)) if yr else None))
+            rec["owner"] = best[1]["title"]
+
+
+def plain_record(title: str) -> str:
+    """"Swisher (album)" -> "Swisher" """
+    return re.sub(r"\s*\((?:[^()]*\b(?:album|EP|single|song|soundtrack|mixtape|compilation)\b[^()]*)\)\s*$", "", title, flags=re.I)
 
 
 def window(sent: str, anchor: str, width: int) -> str:
@@ -566,20 +679,145 @@ LISTY = {"discography", "selected discography", "discography (partial)", "works"
          "recordings", "selected recordings", "albums"}
 
 
-def reason(r: dict, width: int = 220) -> str:
+def reason(r: dict, used: "dict | None" = None, width: int = 220) -> str:
+    """the sentence that makes the connection. `used` (sentence -> who it was shown for) keeps one sentence
+    from being printed again and again: the next-best sentence is chosen, else a pointer to the first"""
     if r["mentions"]:
         name = re.sub(r"\s*\(.*?\)\s*$", "", r["title"])
         surname = name.split()[-1].lower() if name.split() else ""
         # prose before list items; the opening first; a sentence that names it; then the shortest real one
-        sec, sent, _, anchor = sorted(r["mentions"], key=lambda m: (
-            m[0] in LISTY, not m[2], surname not in m[1].lower(), abs(len(m[1]) - 140)))[0]
-        return f"“{window(sent, anchor, width)}”" + (f"  [{sec}]" if sec and sec != "(opening)" else "")
+        options = sorted(r["mentions"], key=lambda m: (
+            m[0] in LISTY, not m[2], surname not in m[1].lower(), abs(len(m[1]) - 140)))
+        for sec, sent, _, anchor in options:
+            if used is None or sent not in used:
+                if used is not None:
+                    used[sent] = r["title"]
+                return f"“{window(sent, anchor, width)}”" + (f"  [{sec}]" if sec and sec != "(opening)" else "")
+        return f"(named in the same sentence as {used[options[0][1]]})"
     if r["infobox"]:
         return f"listed in the infobox under “{r['infobox']}”"
     return ""
 
 
+# ================================================================ which page did you mean?
+SUFFIXES = ("band", "musician", "singer", "rapper", "group", "duo", "American band", "British band", "rock band",
+            "composer", "drummer", "saxophonist", "pianist", "singer-songwriter", "record label", "album")
+
+
+class Ambiguous(Exception):
+    def __init__(self, options: list):
+        self.options = options
+
+
+def what_is(first: str, width: int = 90) -> str:
+    m = re.search(r"\b(?:is|was|are|were)\b\s+(.{0,160})", first or "")
+    t = (m.group(1) if m else first or "").strip()
+    return t if len(t) <= width else t[:width].rsplit(" ", 1)[0] + "…"
+
+
+def music_candidates(wiki: Wiki, page: Article) -> list:
+    """music pages that go by the same name: the links of a disambiguation page, "Name (disambiguation)",
+    and "Name (band)", "Name (singer)" … (musician, label, record or scene pages only)"""
+    base = re.sub(r"\s*\(.*?\)\s*$", "", page.title)
+    seen, out = {page.path}, []
+
+    def add(path):
+        x = wiki.entry(path)
+        if x is None or x.path in seen:
+            return
+        seen.add(x.path)
+        try:
+            t = Article(wiki, x, full=False)
+        except Exception:
+            return
+        if t.is_disambig():
+            return
+        k = t.kind()
+        if k in MAIN_KINDS:
+            out.append({"path": x.path, "title": t.title, "kind": k, "first": t.first_sentence})
+
+    if page.is_disambig():
+        for p in list(page.mentions)[:40]:
+            add(p)
+    d = wiki.exact(f"{base} (disambiguation)")
+    if d is not None and d.path != page.path:
+        for p in list(Article(wiki, d).mentions)[:40]:
+            add(p)
+    for sfx in SUFFIXES:
+        x = wiki.exact(f"{base} ({sfx})")
+        if x is not None:
+            add(x.path)
+    order = {"musician": 0, "label": 1, "record": 2, "scene": 3}
+    return sorted(out, key=lambda c: order[c["kind"]])
+
+
+def choose_seed(wiki: Wiki, name: str, mb: "MusicDB | None"):
+    """-> (seed Article, note) or (None, note) when nothing matches; raises Ambiguous(options) when the name
+    could be several music pages and none clearly dominates. Never guesses silently."""
+    e = wiki.exact(name)
+    if e is None:                                            # no such title: the closest one, preferring music
+        found = []
+        for p in suggest(wiki.zim, name, 6):
+            x = wiki.entry(p)
+            if x is not None and all(x.path != y.path for y in found):
+                found.append(x)
+        if not found:
+            return None, ""
+        pick = next((x for x in found[:5] if Article(wiki, x, full=False).kind() in MAIN_KINDS), found[0])
+        return Article(wiki, pick), f"no page called “{name}”; closest title: {pick.title}"
+    page = Article(wiki, e)
+    if not page.is_disambig() and page.kind() != "other":
+        return page, ""
+    cands = music_candidates(wiki, page)
+    if not cands:
+        if page.is_disambig():
+            raise Ambiguous([{"title": posixpath.basename(p).replace("_", " "), "first": ""}
+                             for p in list(page.mentions)[:12]])
+        return page, ""                                      # something else entirely, and no music page: read it as is
+    primary = [c for c in cands if c["kind"] in ("musician", "label")]
+    chosen = None
+    if len(primary) == 1:
+        chosen = primary[0]
+    elif len(primary) > 1 and mb:
+        w = sorted(((mb.weight_for_title(c["path"]), c) for c in primary), key=lambda t: -t[0])
+        if w[0][0] >= 20 and w[0][0] >= 5 * max(1, w[1][0]):
+            chosen = w[0][1]
+    if chosen is None:
+        raise Ambiguous(cands)
+    x = wiki.entry(chosen["path"])
+    others = [c["title"] for c in cands if c is not chosen][:6]
+    note = f"“{name}” read as {chosen['title']}" + (f". Other music pages with that name: {'; '.join(others)}" if others else "")
+    return Article(wiki, x), note
+
+
 # ================================================================ output
+def works_line(r: dict, mb: "MusicDB | None", label_name: str, limit: int = 6) -> str:
+    """for a label's artist: their records on the label, from the label's article and from MusicBrainz"""
+    items = {}
+    for t, y in r.get("works", []):
+        items.setdefault(re.sub(r"\W+", "", t.casefold()), [t, y])
+    m = r.get("mb") or {}
+    if mb and label_name and m.get("id"):
+        for t, y in mb.label_albums(label_name, m["id"]):
+            k = re.sub(r"\W+", "", t.casefold())
+            if k in items:
+                items[k][1] = items[k][1] or y
+            else:
+                items[k] = [t, y]
+    n = m.get("albums", 0)
+    if not items:
+        return f"On the label: {n} album{'s' * (n != 1)} (MusicBrainz)" if n else ""
+    ordered = sorted(items.values(), key=lambda t: (t[1] is None, t[1] or 0, t[0]))
+    text = " · ".join(t + (f" ({y})" if y else "") for t, y in ordered[:limit])
+    if len(ordered) > limit:
+        text += f"  (+{len(ordered) - limit} more)"
+    return "On the label: " + text
+
+
+LABEL_HEADINGS = {"musician": "Artists on the label", "record": "Other records", "label": "Related labels",
+                  "scene": "Scenes and styles"}
+
+
 def main():
     ap = argparse.ArgumentParser(description="Connections from offline Wikipedia (gleaner prototype).")
     ap.add_argument("name", help='an artist, record, label or scene, e.g. "Milford Graves"')
@@ -596,20 +834,28 @@ def main():
     mb = MusicDB(mbpath) if mbpath else None
     print(f"connections {VERSION} · {os.path.basename(wiki.path)}"
           + (f" · music.db (MusicBrainz {mb.stamp})" if mb else " · no music.db"), file=sys.stderr)
-    e = wiki.find(a.name)
-    if e is None:
+    try:
+        seed, note = choose_seed(wiki, a.name, mb)
+    except Ambiguous as amb:
+        print(f"“{a.name}” could be several things. Ask again with the full title:\n")
+        width = max(len(c["title"]) for c in amb.options) + 18
+        for c in amb.options:
+            cmd = f"connections.py \"{c['title']}\""
+            print(f"  {cmd:<{width}}" + (f"{what_is(c['first'])}" if c["first"] else ""))
+        sys.exit(2)
+    if seed is None:
         alts = wiki.suggestions(a.name)
         sys.exit(f"No article for “{a.name}”." + (" Did you mean: " + "; ".join(alts) if alts else ""))
-    seed = Article(wiki, e)
-    if re.search(r"\b(?:may|might|can|could) (?:also )?(?:refer|be used to refer) to\b", seed.first_sentence):
-        opts = [posixpath.basename(p).replace("_", " ") for p in list(seed.mentions)[:12]]
-        sys.exit(f"“{seed.title}” is a disambiguation page. Try one of: " + "; ".join(opts))
 
-    print(f"\n{seed.title}  ({seed.kind()})")
+    kind = seed.kind()
+    print(f"\n{seed.title}  ({kind})")
+    if note:
+        print(f"  ({note})")
     if seed.first_sentence:
         print("  " + (seed.first_sentence[:300] + ("…" if len(seed.first_sentence) > 300 else "")))
     wanted = ("genre", "genres", "instrument", "instruments", "instrument(s)", "labels", "label", "years active",
-              "associated acts", "members", "past members", "origin", "born", "released", "recorded")
+              "associated acts", "members", "past members", "origin", "born", "released", "recorded", "founded",
+              "founder", "country of origin", "location")
     facts = [(l, t) for l, t, _ in seed.infobox_rows if l.lower().rstrip(":") in wanted and t]
     if facts:
         print()
@@ -618,12 +864,18 @@ def main():
     print()
 
     ranked = connections(wiki, seed, mb=mb)
+    label_mode = ranked.label_mode
+    headings = {**dict(KIND_ORDER), **LABEL_HEADINGS} if label_mode else dict(KIND_ORDER)
+    used = {}                                   # sentences already shown, so none is repeated
     shown = 0
-    for kind, heading in KIND_ORDER:
-        if kind not in MAIN_KINDS and not a.all:
+    for k, _ in KIND_ORDER:
+        heading = headings[k]
+        if k not in MAIN_KINDS and not a.all:
             continue
-        rows = [r for r in ranked if r["kind"] == kind
-                and (r["score"] > 0.12 or (kind in MAIN_KINDS and (r["mentions"] or r.get("mb"))))][:a.top]
+        floor = 0.20 if label_mode and k == "label" else 0.12
+        rows = [r for r in ranked if r["kind"] == k and not r.get("owner")
+                and (r["score"] > floor or (k in MAIN_KINDS and not (label_mode and k == "label")
+                                            and (r["mentions"] or r.get("mb"))))][:a.top]
         if not rows:
             continue
         print(f"\n{heading}")
@@ -631,16 +883,20 @@ def main():
         for r in rows:
             shown += 1
             print(f"{r['score']:.2f}  {r['title']}" + ("  (not on Wikipedia)" if r.get("offwiki") else ""))
-            why = reason(r)
+            if label_mode and k == "musician":
+                w = works_line(r, mb, ranked.label_name)
+                if w:
+                    print(f"      {w}")
+            why = reason(r, used)
             if why:
                 print(f"      {why}")
-            if r.get("mb"):
+            if r.get("mb") and not label_mode:
                 t = mb_text(r["mb"])
                 if t:
                     print(f"      {t}")
             if a.why:
                 p = r["parts"]
-                print("      " + " · ".join(f"{k} {v:.2f}" for k, v in p.items() if v)
+                print("      " + " · ".join(f"{pk} {v:.2f}" for pk, v in p.items() if v)
                       + f"   (mentions {len(r['mentions'])}, shared {r['shared']:.2f}, back {'yes' if r['back'] else 'no'})")
     if not shown:
         print("No strong connections found." + ("" if a.all else " Try --all."))

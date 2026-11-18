@@ -6,6 +6,7 @@ Checks for tools/connections.py against the made-up music archive.
     python3 tests/test_connections.py some.zim   (also runs every article of a real archive, to catch crashes)
 """
 import os
+import re
 import sys
 import time
 
@@ -66,10 +67,22 @@ con.executescript("""
         (5,'m5','Rook Abernathy','','Person',NULL,NULL,'','Rook_Abernathy',NULL),
         (6,'m6','Silas Crane','','Person',NULL,NULL,'',NULL,NULL),
         (7,'m7','Orrin Vale','','Person',NULL,NULL,'',NULL,NULL);
+    INSERT INTO artist VALUES (8,'m8','Pale Harbour','','Group',NULL,NULL,'','Pale_Harbour',NULL),
+        (9,'m9','Dov Ketch','','Person',NULL,NULL,'',NULL,NULL),
+        (10,'m10','Hush','','Group',NULL,NULL,'','Hush_(band)',NULL),
+        (11,'m11','Hush','','Group',NULL,NULL,'','Hush_(UK_band)',NULL);
+    CREATE TABLE label(artist INTEGER, name TEXT, n INTEGER);
+    CREATE TABLE label_album(label TEXT, artist INTEGER, album TEXT, year INTEGER);
+    INSERT INTO label VALUES (1,'Kestrel Disk',2),(2,'Kestrel Disk',1),(8,'Kestrel Disk',1),(9,'Kestrel Disk',2);
+    INSERT INTO label_album VALUES ('Kestrel Disk',1,'Night Choir',1967),('Kestrel Disk',1,'Stone Hours',1970),
+        ('Kestrel Disk',2,'Night Choir',1967),('Kestrel Disk',8,'Soft Engines',1969),
+        ('Kestrel Disk',9,'Ninth Room',1974),('Kestrel Disk',9,'Glass Weather',1972);
     INSERT INTO rel VALUES (1,4,'member of band',1964,1972,'drums'), (3,1,'teacher',NULL,NULL,NULL);
     INSERT INTO played VALUES (1,2,2,4,'Night Choir',1967), (1,5,1,0,'Grey Lanterns',1971),
-        (1,6,1,3,'Night Choir',1967), (3,7,0,1,NULL,NULL);
+        (1,6,1,3,'Night Choir',1967), (3,7,0,1,NULL,NULL),
+        (11,300,1,1,NULL,NULL);
 """)
+con.executemany("INSERT INTO played VALUES (10,?,1,1,NULL,NULL)", [(400 + k,) for k in range(25)])
 con.commit()
 con.close()
 mb = C.MusicDB(MDB)
@@ -87,6 +100,71 @@ for absent in ("Drum kit", "1964", "Jazz Weekly"):
     assert absent not in by2, absent
 assert by2["Lena Marsh"]["score"] > by2["Silas Crane"]["score"]        # Wikipedia + MusicBrainz beats MusicBrainz alone
 print("✅ with music.db: MusicBrainz evidence merged, new musicians added, scores 0–1")
+
+# ---- what kind of page a name is, and which page a name means
+assert w.exact("hush").title == "Hush"                                        # "nirvana" -> "Nirvana", no title-search guess
+assert w.exact("orrin vale").path == "Orrin_Vale"
+assert C.Article(w, w.find("Hush (disambiguation)")).is_disambig()
+assert not C.Article(w, w.find("Hush")).is_disambig()
+assert C.Article(w, w.find("Mara Quill")).kind() == "person"                  # mentions a label, is not one
+assert C.Article(w, w.find("Kestrel Disk")).kind() == "label"
+for sent in ("Sub Pop is an American independent record label based in Seattle",
+             "Folkways Records was an American record company and music publisher"):
+    assert C.LABEL_HEAD.search(re.search(r"\b(?:is|was)\b(.*)", sent).group(1)), sent
+for sent in ("is an American photographer best known for his work with the Sub Pop label",
+             "is a Niger–Congo language spoken in West Africa"):
+    assert not C.LABEL_HEAD.search(" " + sent)
+try:                                                                            # two bands, no database: list them
+    C.choose_seed(w, "hush", None)
+    raise AssertionError("expected Ambiguous")
+except C.Ambiguous as amb:
+    assert [c["title"] for c in amb.options] == ["Hush (band)", "Hush (UK band)"], amb.options
+sd, note = C.choose_seed(w, "ember", None)                                      # one music reading: used, others named
+assert sd.title == "Ember (band)" and "read as Ember (band)" in note, (sd.title, note)
+sd, note = C.choose_seed(w, "hush", mb)                                         # one band far bigger: used, other named
+assert sd.title == "Hush (band)" and "Hush (UK band)" in note, (sd.title, note)
+sd, note = C.choose_seed(w, "orrin val", mb)
+assert sd.title == "Orrin Vale" and note.startswith("no page called"), (sd.title, note)
+print("✅ names: lower case finds the page, labels and look-alikes told apart, ambiguous names listed or resolved")
+
+# ---- a label: artists with their records on it
+lab = C.Article(w, w.find("kestrel disk"))
+r3 = C.connections(w, lab, progress=False, mb=mb)
+assert r3.label_mode and r3.label_name == "Kestrel Disk"
+by3 = {r["title"]: r for r in r3}
+assert by3["Pale Harbour"]["kind"] == "musician" and by3["Pale Harbour"]["works"] == [("Soft Engines", 1969)]
+assert by3["Soft Engines"].get("owner") == "Pale Harbour"                       # the record hangs on its artist
+assert by3["Mara Quill"]["kind"] == "person"
+assert by3["Dov Ketch"].get("offwiki") and by3["Orrin Vale"]["kind"] == "musician"   # MusicBrainz roster added
+assert C.works_line(by3["Pale Harbour"], mb, "Kestrel Disk") == "On the label: Soft Engines (1969)"
+assert C.works_line(by3["Dov Ketch"], mb, "Kestrel Disk") == "On the label: Glass Weather (1972) · Ninth Room (1974)"
+assert C.works_line(by3["Orrin Vale"], mb, "Kestrel Disk") == "On the label: Night Choir (1967) · Stone Hours (1970)"
+assert all(0 <= r["score"] <= 1.0 for r in r3), max(r["score"] for r in r3)
+used = {}
+musos = [r for r in r3 if r["kind"] == "musician"]
+shown = [C.reason(r, used) for r in musos]
+quoted = [t for t in shown if t.startswith("“")]
+assert len(quoted) == len(set(quoted)), quoted                                  # no sentence printed twice
+assert all(t for t, r in zip(shown, musos) if r["mentions"]), shown             # but every linked one still gets a reason
+print("✅ label: roster with records, MusicBrainz names added, no sentence repeated")
+
+# ---- the real command line, end to end
+import subprocess                           # noqa: E402
+def cli(*args):
+    return subprocess.run([sys.executable, os.path.join(os.path.dirname(HERE), "connections.py"), "--zim", ZIM,
+                           "--musicdb", MDB, *args], capture_output=True, text=True, encoding="utf-8")
+o = cli("kestrel disk", "--top", "10")
+assert o.returncode == 0, o.stderr
+assert "Kestrel Disk  (label)" in o.stdout and "Artists on the label" in o.stdout, o.stdout
+assert "Musicians and groups" not in o.stdout, o.stdout
+assert "On the label: Soft Engines (1969)" in o.stdout and "Glass Weather (1972)" in o.stdout, o.stdout
+lines = [l.strip() for l in o.stdout.splitlines() if l.strip().startswith("“")]
+assert len(lines) == len(set(lines)), lines
+o = cli("hush")
+assert o.returncode == 2 or "read as Hush (band)" in o.stdout, o.stdout
+o = cli("ember")
+assert "Ember (band)  (musician)" in o.stdout and "read as Ember (band)" in o.stdout, o.stdout
+print("✅ command line: label shaped as a label, ambiguous name resolved")
 
 if len(sys.argv) > 1:
     real = C.Wiki(sys.argv[1])

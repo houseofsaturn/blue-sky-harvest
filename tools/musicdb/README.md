@@ -7,7 +7,7 @@ that exlo and fatline can carry. No AI, nothing online once it's built.
 | File | What it does | Where it runs |
 |---|---|---|
 | `build_musicdb.py` | Turns the downloads into `music.db` (one-off, heavy) | exlomax |
-| `musicdb.py` | Looks an artist up: relationships, who they played with, instruments, genres | anywhere with `music.db` |
+| `musicdb.py` | Looks an artist up (relationships, who they played with, instruments, genres) or a label (its roster and records) | anywhere with `music.db` |
 | `test_musicdb.py` | Builds made-up dumps in the real formats and checks both scripts | anywhere |
 
 Standard-library Python only (3.10+).
@@ -33,6 +33,11 @@ py musicdb.py "Milford Graves"
 Steps are resumable (stop it and run again; finished steps are skipped). `--redo` starts the
 database steps again but keeps the unpacked tables. The unpack is the slow part.
 
+**Upgrading 0.4 → 0.5** (adds `label_album`, so a label can list its records): run the same command
+again *without* `--redo`. Every finished step is skipped, only the new step "8b label albums" and the
+final copy run (a few minutes). If it complains about a missing table, run it once with `--redo`.
+Then copy the new `music.db` to exlo and fatline as before.
+
 ## What's inside music.db
 
 - `artist`: every MusicBrainz artist, with type, years, area, English Wikipedia title (via Wikidata) and Q-id
@@ -45,6 +50,8 @@ database steps again but keeps the unpacked tables. The unpack is the slow part.
 - `instrument`: instruments per artist, from their performer credits (classes like "membranophone" left out)
 - `genre`: MusicBrainz genre tags per artist, with votes
 - `label`: labels of the artist's own albums, with how many albums ("[no label]" left out)
+- `label_album`: what each label released, per credited artist: label, artist, album, year (0.5);
+  lets `connections.py` and `musicdb.py` show a label as artists with their records
 - `meta`: dump date, row counts, licences
 
 Licences: MusicBrainz core data CC0; genre tags CC BY-NC-SA 3.0 (fine for this personal,

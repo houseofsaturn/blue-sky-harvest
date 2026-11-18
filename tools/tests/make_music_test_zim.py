@@ -79,7 +79,33 @@ ARTICLES = {
         '<a href="Orrin_Vale">Orrin Vale</a>.</p>']),
     "Kestrel_Disk": page("Kestrel Disk", [("Founded", "1963"), ("Distributor(s)", "Self")], [
         '<p><b>Kestrel Disk</b> is an invented record label that issued <a href="Free_jazz">free jazz</a> records '
-        'by <a href="The_Hollow_Quartet">The Hollow Quartet</a>.</p>']),
+        'by <a href="The_Hollow_Quartet">The Hollow Quartet</a>.</p>',
+        ("History", '<p>The label also released <i><a href="Soft_Engines">Soft Engines</a></i> by '
+                    '<a href="Pale_Harbour">Pale Harbour</a> in 1969. Later releases came from '
+                    '<a href="Lena_Marsh">Lena Marsh</a>, <a href="Pale_Harbour">Pale Harbour</a> and '
+                    '<a href="The_Hollow_Quartet">The Hollow Quartet</a>. The cover photographs were taken by '
+                    '<a href="Mara_Quill">Mara Quill</a>.</p>')]),
+    "Pale_Harbour": page("Pale Harbour", [("Years active", "1966–1970"), ("Labels", '<a href="Kestrel_Disk">Kestrel Disk</a>')], [
+        '<p><b>Pale Harbour</b> was an invented band on <a href="Kestrel_Disk">Kestrel Disk</a>.</p>']),
+    "Soft_Engines": page("Soft Engines", [("Released", "1969")], [
+        '<p><i><b>Soft Engines</b></i> is an invented album by <a href="Pale_Harbour">Pale Harbour</a>, released in '
+        '1969 on <a href="Kestrel_Disk">Kestrel Disk</a>.</p>']),
+    "Mara_Quill": page("Mara Quill", [("Born", "1941")], [
+        '<p><b>Mara Quill</b> is an invented photographer best known for her work with the Kestrel Disk label.</p>']),
+    # a name that is also something else: "Hush" (a state of quiet), two bands, a disambiguation page
+    "Hush": page("Hush", [], ['<p><b>Hush</b> is an invented state of quiet in which nothing is said.</p>']),
+    "Hush_(band)": page("Hush (band)", [("Years active", "1980–1985"), ("Genres", "punk")], [
+        '<p><b>Hush</b> was an invented band from <a href="Harrow_Bend">Harrow Bend</a>.</p>']),
+    "Hush_(UK_band)": page("Hush (UK band)", [("Years active", "1990–1991")], [
+        '<p><b>Hush</b> was a second invented band that played in cellars.</p>']),
+    "Hush_(disambiguation)": page("Hush (disambiguation)", [], [
+        '<p><b>Hush</b> may refer to:</p><ul><li><a href="Hush">Hush</a>, a state of quiet</li>'
+        '<li><a href="Hush_(band)">Hush (band)</a>, an invented band</li>'
+        '<li><a href="Hush_(UK_band)">Hush (UK band)</a>, another invented band</li></ul>']),
+    # a name with exactly one music reading
+    "Ember": page("Ember", [], ['<p><b>Ember</b> is an invented glowing piece of coal.</p>']),
+    "Ember_(band)": page("Ember (band)", [("Years active", "2001–2004")], [
+        '<p><b>Ember</b> was an invented band that rarely played.</p>']),
     "Free_jazz": page("Free jazz", [("Stylistic origins", "Jazz"), ("Cultural origins", "1950s–1960s")], [
         '<p><b>Free jazz</b> is a style of jazz. Here it is test text for <a href="Orrin_Vale">Orrin Vale</a>.</p>']),
     "Harrow_Bend": page("Harrow Bend", [("Country", "Nowhere")], [
