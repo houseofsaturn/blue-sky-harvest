@@ -287,6 +287,14 @@ labels (Charles Peterson, Yoruba). (5) **No sentence is printed twice**: the nex
 `build_musicdb.py` on exlomax *without* --redo** (few minutes), then copy music.db to exlo/fatline. Until then
 labels list artists with album counts only. `musicdb.py "Label name"` also prints a roster. Tests extended (made-up
 label, look-alike "Hush", "Ember"); all pass.
+**Mozart hang (18 Nov 2026, JC on fatline, still 0.3 code):** stalled after "read 250 linked articles", i.e. in the music.db
+step; cause not confirmed (a composer is credited on tens of thousands of albums, so his `played` rows are huge; a
+synthetic 400k-pair hub ran in 0.1 s warm, so a cold disk is the suspect). Fixed regardless: partners read only the top
+rows per side, composite `played` indexes in the 0.5 build, and **any music.db lookup is abandoned after 25 s** (stderr
+says so; answer is Wikipedia-only). **Open design question: classical.** Composers are credited as album artists, so
+"played with" really means "who recorded them"; labels matter little; the real unit is work + performers (conductor,
+orchestra, soloist). Ideas, not built: a composer shape ("recorded most by", works from Wikipedia), a "recordings of
+<work>" template using MusicBrainz works (needs the `work` tables, not in music.db yet). Wait for JC's view.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the
