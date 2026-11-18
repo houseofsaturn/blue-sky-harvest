@@ -428,13 +428,24 @@ def find_musicdb(arg):
 
 
 class MusicDB:
-    def __init__(self, path):
+    BUDGET = 25.0          # seconds a lookup may take before it is abandoned (Wikipedia-only answer instead)
+
+    def __init__(self, path, budget: float = BUDGET):
         self.path = path
+        self.budget = budget
+        self.deadline = None
         self.con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        self.con.set_progress_handler(self._expired, 200000)
         try:
             self.stamp = self.con.execute("SELECT value FROM meta WHERE key='musicbrainz_dump'").fetchone()[0][:10]
         except Exception:
             self.stamp = ""
+
+    def _expired(self):
+        return 1 if self.deadline is not None and time.time() > self.deadline else 0
+
+    def start_clock(self):
+        self.deadline = time.time() + self.budget
 
     def artist_for(self, seed: "Article"):
         """the MusicBrainz artist for a Wikipedia article: by title, else by name (most connected wins)"""
@@ -448,7 +459,7 @@ class MusicDB:
         if len(rows) == 1:
             return rows[0][0]
         return max((r[0] for r in rows), key=lambda i: self.con.execute(
-            "SELECT count(*) FROM played WHERE a=? OR b=?", (i, i)).fetchone()[0])
+            "SELECT (SELECT count(*) FROM played WHERE a=?) + (SELECT count(*) FROM played WHERE b=?)", (i, i)).fetchone()[0])
 
     def label_roster(self, seed: "Article", limit: int = 60):
         """for a label: (name as MusicBrainz has it, {artist id: partner-like dict}) from the label table,
@@ -478,16 +489,22 @@ class MusicDB:
         title = posixpath.basename(wiki_path)
         n = 0
         for (i,) in self.con.execute("SELECT id FROM artist WHERE wiki=?", (title,)).fetchall():
-            n += self.con.execute("SELECT count(*) FROM played WHERE a=? OR b=?", (i, i)).fetchone()[0]
+            n += self.con.execute("SELECT (SELECT count(*) FROM played WHERE a=?) + (SELECT count(*) FROM played WHERE b=?)",
+                                  (i, i)).fetchone()[0]
         return n
 
     def partners(self, aid: int, limit: int = 60) -> dict:
         """other artist id -> {name, wiki, type, albums, tracks, example, year, rels: [text]}"""
         out = {}
         for oid, name, wiki, typ, alb, trk, ex, yr in self.con.execute("""
-                SELECT x.id, x.name, x.wiki, x.type, p.albums, p.tracks, p.example, p.year FROM played p
-                JOIN artist x ON x.id = CASE WHEN p.a=? THEN p.b ELSE p.a END
-                WHERE p.a=? OR p.b=? ORDER BY p.albums DESC, p.tracks DESC LIMIT ?""", (aid, aid, aid, limit)):
+                SELECT x.id, x.name, x.wiki, x.type, q.albums, q.tracks, q.example, q.year FROM (
+                    SELECT * FROM (SELECT b o, albums, tracks, example, year FROM played WHERE a=?
+                                   ORDER BY albums DESC, tracks DESC LIMIT ?)
+                    UNION ALL
+                    SELECT * FROM (SELECT a o, albums, tracks, example, year FROM played WHERE b=?
+                                   ORDER BY albums DESC, tracks DESC LIMIT ?)
+                    ORDER BY albums DESC, tracks DESC LIMIT ?) q
+                JOIN artist x ON x.id = q.o ORDER BY q.albums DESC, q.tracks DESC""", (aid, limit, aid, limit, limit)):
             out[oid] = {"id": oid, "name": name, "wiki": wiki, "type": typ, "albums": alb or 0, "tracks": trk or 0,
                         "example": ex, "year": yr, "rels": []}
         for oid, name, wiki, typ, kind, rev, b, e in self.con.execute("""
@@ -565,13 +582,26 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
     seed_kind = seed.kind()
     label_mode = seed_kind == "label"
     label_name = ""
+    ranked_mb = mb
     if mb:
         partners = {}
-        if label_mode:                                       # a label: its roster (artists, albums on it)
-            label_name, partners = mb.label_roster(seed)
-        elif seed_kind not in ("record", "scene"):           # an artist: who they played with
-            aid = mb.artist_for(seed)
-            partners = mb.partners(aid) if aid is not None else {}
+        if progress:
+            print("   looking in music.db…", end="", file=sys.stderr, flush=True)
+        mb.start_clock()
+        t1 = time.time()
+        try:
+            if label_mode:                                   # a label: its roster (artists, albums on it)
+                label_name, partners = mb.label_roster(seed)
+            elif seed_kind not in ("record", "scene"):       # an artist: who they played with
+                aid = mb.artist_for(seed)
+                partners = mb.partners(aid) if aid is not None else {}
+            if progress:
+                print(f" {time.time() - t1:.1f}s", file=sys.stderr)
+        except sqlite3.OperationalError:                     # too slow: give the Wikipedia-only answer, say so
+            partners, ranked_mb = {}, None
+            if progress:
+                print(f" gave up after {mb.budget:.0f}s; Wikipedia only for this one", file=sys.stderr)
+        mb.deadline = None
         if partners:
             added = 0
             for oid, m in partners.items():
@@ -610,11 +640,11 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
             "links back": 0.25 * (1 if r["back"] else 0),
             "shared": 0.20 * min(1.0, r["shared"] / 0.5),       # cosine 0.5+ counts as fully shared
         }
-        if mb and label_mode:
+        if ranked_mb and label_mode:
             m = r.get("mb")
             parts["on label"] = 0.30 * min(m["albums"], 4) / 4 if m else 0.0
             parts = {k: v / split for k, v in parts.items()}
-        elif mb:
+        elif ranked_mb:
             m = r.get("mb")
             parts["played"] = (0.25 * min(m["albums"], 3) / 3 if m and m["albums"] else
                                0.10 * min(m["tracks"], 10) / 10 if m and m["tracks"] else 0.0)

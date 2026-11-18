@@ -148,6 +148,16 @@ assert len(quoted) == len(set(quoted)), quoted                                  
 assert all(t for t, r in zip(shown, musos) if r["mentions"]), shown             # but every linked one still gets a reason
 print("✅ label: roster with records, MusicBrainz names added, no sentence repeated")
 
+# ---- a music.db lookup that takes too long is abandoned: Wikipedia-only answer, no hang
+def too_slow(*a, **k):
+    raise sqlite3.OperationalError("interrupted")
+mb_slow = C.MusicDB(MDB)
+mb_slow.partners = too_slow
+r4 = C.connections(w, seed, progress=False, mb=mb_slow)
+assert r4[0]["title"] == "Lena Marsh" and all(r["mb"] is None for r in r4)
+assert [r["score"] for r in r4] == [r["score"] for r in C.connections(w, seed, progress=False)]   # same as no music.db
+print("✅ slow music.db: given up cleanly, Wikipedia-only scores")
+
 # ---- the real command line, end to end
 import subprocess                           # noqa: E402
 def cli(*args):

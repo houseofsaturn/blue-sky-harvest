@@ -632,8 +632,8 @@ def step_finish(con, work: str, out: str, dumps: str) -> None:
         CREATE INDEX o.artist_wiki ON artist(wiki);
         CREATE INDEX o.rel_a ON rel(a);
         CREATE INDEX o.rel_b ON rel(b);
-        CREATE INDEX o.played_a ON played(a);
-        CREATE INDEX o.played_b ON played(b);
+        CREATE INDEX o.played_a ON played(a, albums DESC, tracks DESC);   -- "top 60 partners" reads 60 rows, even for a hub
+        CREATE INDEX o.played_b ON played(b, albums DESC, tracks DESC);
         CREATE INDEX o.instrument_a ON instrument(artist);
         CREATE INDEX o.genre_a ON genre(artist);
         CREATE TABLE o.meta(key TEXT PRIMARY KEY, value TEXT);
