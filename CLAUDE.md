@@ -310,8 +310,8 @@ rejected so far: seek/#seekings, harvest words (#sheaves, #threshing…), #margi
 **Decided (JC, 23 Nov 2026):** the cyby button is **"glean"** (lower case, "glean this word"), in **both** the
 highlight menu (passages) and the dictionary popup (single words: look first, glean only if cyby can't
 answer). Channel: **`#index`** (JC, 23 Nov 2026; each post is a term + where it was found, like a book's
-index; nod to Kinbote's index in *Pale Fire*; #memorabilia was the runner-up). Dropbox folder: **`gleaned/`**
-(the first folder travelling *from* cyby; pairs with `gleanings/`). Full record on fatline:
+index; nod to Kinbote's index in *Pale Fire*; #memorabilia was the runner-up). Dropbox folder: **`gleaned_index/`**
+(JC: same name as the record, for uniformity; the first folder travelling *from* cyby). Full record on fatline:
 **`~/gleaned_index.txt`** (JC's name, easy to find; one line per glean: date time · passage · source; never
 in the repo, it's personal). No note prompt for now (typing on cyby is slow;
 revisit). Posts carry exactly what was sent: the passage + where it came from (title, link back to the
