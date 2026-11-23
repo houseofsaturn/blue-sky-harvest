@@ -309,7 +309,9 @@ rejected so far: seek/#seekings, harvest words (#sheaves, #threshing…), #margi
 (#hypercards, #intel). Reading-notes button comes later, on the same pipe. **Not built yet.**
 **Decided (JC, 23 Nov 2026):** the cyby button is **"glean"** (lower case, "glean this word"), in **both** the
 highlight menu (passages) and the dictionary popup (single words: look first, glean only if cyby can't
-answer). Channel name still a placeholder (`#lookups`). No note prompt for now (typing on cyby is slow;
+answer). Channel: **`#index`** (JC, 23 Nov 2026; each post is a term + where it was found, like a book's
+index; nod to Kinbote's index in *Pale Fire*; #memorabilia was the runner-up). Dropbox folder name: open
+(JC worried `index/` reads oddly there). No note prompt for now (typing on cyby is slow;
 revisit). Posts carry exactly what was sent: the passage + where it came from (title, link back to the
 article / book title), **no Wikipedia text added**. Reactions: **🍃 = clear** (post disappears; JC found ✅
 too admin-like), **🌱 = keep**; other emoji ignored. gleaner keeps a quiet plain-text record of every glean
