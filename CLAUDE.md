@@ -309,15 +309,15 @@ rejected so far: seek/#seekings, harvest words (#sheaves, #threshing…), #margi
 (#hypercards, #intel). Reading-notes button comes later, on the same pipe. **Not built yet.**
 **Decided (JC, 23 Nov 2026):** the cyby button is **"glean"** (lower case, "glean this word"), in **both** the
 highlight menu (passages) and the dictionary popup (single words: look first, glean only if cyby can't
-answer). Channel: **`#index`** (JC, 23 Nov 2026; each post is a term + where it was found, like a book's
-index; nod to Kinbote's index in *Pale Fire*; #memorabilia was the runner-up). Dropbox folder: **`gleaned_index/`**
-(JC: same name as the record, for uniformity; the first folder travelling *from* cyby). Full record on fatline:
-**`~/gleaned_index.txt`** (JC's name, easy to find; one line per glean: date time · passage · source; never
-in the repo, it's personal). No note prompt for now (typing on cyby is slow;
+answer). Name everywhere: **glean-index** (JC, 23 Nov 2026: "it is the glean index, so it should be called the same
+thing across the system"): Discord **`#glean-index`**, Dropbox folder **`glean-index/`**, record on fatline
+**`~/glean-index.txt`**. (Each post is a term + where it was found, like a book's index; nod to Kinbote's
+index in *Pale Fire*; #memorabilia was the runner-up.) glean-index/ is the first Dropbox folder travelling *from* cyby. Record format: one line per glean
+(date time · passage · source); never in the repo, it's personal. No note prompt for now (typing on cyby is slow;
 revisit). Posts carry exactly what was sent: the passage + where it came from (title, link back to the
 article / book title), **no Wikipedia text added**. Reactions: **🍃 = clear** (post disappears; JC found ✅
 too admin-like), **🌱 = keep**; other emoji ignored. gleaner keeps a quiet plain-text record of every glean
-on fatline (`~/gleaned_index.txt`) (never posted; feeds `!last` and maybe seasonal batches). Commands: `!last 10` / `!last 20`;
+on fatline (`~/glean-index.txt`) (never posted; feeds `!last` and maybe seasonal batches). Commands: `!last 10` / `!last 20`;
 reply to a glean with `wiki` (opening paragraph) or `link` (Wikipedia link), answered from fatline's own
 ZIM, not the web ("keep it in house").
 
