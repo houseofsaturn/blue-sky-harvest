@@ -310,12 +310,14 @@ rejected so far: seek/#seekings, harvest words (#sheaves, #threshing…), #margi
 **Decided (JC, 23 Nov 2026):** the cyby button is **"glean"** (lower case, "glean this word"), in **both** the
 highlight menu (passages) and the dictionary popup (single words: look first, glean only if cyby can't
 answer). Channel: **`#index`** (JC, 23 Nov 2026; each post is a term + where it was found, like a book's
-index; nod to Kinbote's index in *Pale Fire*; #memorabilia was the runner-up). Dropbox folder name: open
-(JC worried `index/` reads oddly there). No note prompt for now (typing on cyby is slow;
+index; nod to Kinbote's index in *Pale Fire*; #memorabilia was the runner-up). Dropbox folder: **`gleaned/`**
+(the first folder travelling *from* cyby; pairs with `gleanings/`). Full record on fatline:
+**`~/gleaned_index.txt`** (JC's name, easy to find; one line per glean: date time · passage · source; never
+in the repo, it's personal). No note prompt for now (typing on cyby is slow;
 revisit). Posts carry exactly what was sent: the passage + where it came from (title, link back to the
 article / book title), **no Wikipedia text added**. Reactions: **🍃 = clear** (post disappears; JC found ✅
 too admin-like), **🌱 = keep**; other emoji ignored. gleaner keeps a quiet plain-text record of every glean
-on fatline (never posted; feeds `!last` and maybe seasonal batches). Commands: `!last 10` / `!last 20`;
+on fatline (`~/gleaned_index.txt`) (never posted; feeds `!last` and maybe seasonal batches). Commands: `!last 10` / `!last 20`;
 reply to a glean with `wiki` (opening paragraph) or `link` (Wikipedia link), answered from fatline's own
 ZIM, not the web ("keep it in house").
 
