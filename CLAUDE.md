@@ -71,7 +71,10 @@ and game content stays out.
   Use Tools → Gleanings → Sync now, never Cloud storage → Synchronize. About 1.2 GB free.
   User patches live in `koreader/patches/` (repo) → `koreader/patches/` on cyby;
   `2-cyby-title.lua` shows "cyby" instead of "KOReader" on the home screen.
-  Dictionaries: English Wiktionary (first) and GCIDE. Backup of KOReader data:
+  Dictionaries: English Wiktionary (first), GCIDE and **Wikipedia 100k** (23 Nov 2026: built on fatline with
+  `tools/wikidict.py` from the nopic ZIM in 25 min; 99,571 entries, 22,864 other names, 40 MB; output in
+  `~/wikidict/` on fatline; scp to the Mac, cp -R into `koreader/data/dict/`; works). Upgrade later with
+  `--articles 250000` (~120 MB) if words are missing. Backup of KOReader data:
   `~/cyby-backup` on the Mac (rsync commands in chat history).
 - #sstacks subscribed to Kevin Munger's *Never Met a Science* (kevinmunger.substack.com).
   Substack's archive API didn't answer from the Mac; the RSS fallback works.
@@ -160,9 +163,7 @@ and game content stays out.
   on his work MacBook; he's advised to move it to a phone authenticator app.
 
 ## Next
-1. Wikipedia dictionary for cyby: run `tools/wikidict.py` on exlomax (it already has the ZIM).
-   **On hold until JC is back in the office** (14 Nov 2026); he chose exlomax over his MacBooks.
-   Script now prints pip install hints for Mac/Windows; use `--zim D:\...\wikipedia_en_all_maxi_2026-08.zim`.
+1. ~~Wikipedia dictionary for cyby~~ done 23 Nov 2026 on fatline (not exlomax after all), see cyby above.
 2. ~~Set up fatline and move gleaner to it~~ done 14 Nov 2026. Small fatline leftovers above.
 3. Map atlases: `#maps` channel, greyscale PDF atlases from OpenStreetMap, rendered on the server.
 5. exlo off-grid: GPS from the H2T, exlo's own Wi-Fi hotspot so cyby can collect from exlo
