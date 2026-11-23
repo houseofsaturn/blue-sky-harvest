@@ -306,12 +306,15 @@ separate from #gleanings because the job differs. Names are **undecided**: place
 "Look up later", channel `#lookups`, folder `lookups/`. JC is unsure "glean" is the right word for it;
 rejected so far: seek/#seekings, harvest words (#sheaves, #threshing…), #marginalia, Snow Crash nouns
 (#hypercards, #intel). Reading-notes button comes later, on the same pipe. **Not built yet.**
-**Decided (JC, 23 Nov 2026):** the cyby button is **"Glean"** ("glean this word"); channel name still a
-placeholder (`#lookups`). No note prompt for now (typing on cyby is slow; revisit). Posts carry exactly
-what was sent (passage + where it came from), **no Wikipedia text added**. ✅ = post disappears (calm
-channel); another emoji keeps it. Commands wanted: last 10/20 gleaned; Wikipedia for the last glean
-(on request only). Under discussion: Glean button in the dictionary popup too, and a quiet log of every
-glean kept on fatline so "last 20" still works after posts are cleared.
+**Decided (JC, 23 Nov 2026):** the cyby button is **"glean"** (lower case, "glean this word"), in **both** the
+highlight menu (passages) and the dictionary popup (single words: look first, glean only if cyby can't
+answer). Channel name still a placeholder (`#lookups`). No note prompt for now (typing on cyby is slow;
+revisit). Posts carry exactly what was sent: the passage + where it came from (title, link back to the
+article / book title), **no Wikipedia text added**. Reactions: **🍃 = clear** (post disappears; JC found ✅
+too admin-like), **🌱 = keep**; other emoji ignored. gleaner keeps a quiet plain-text record of every glean
+on fatline (never posted; feeds `!last` and maybe seasonal batches). Commands: `!last 10` / `!last 20`;
+reply to a glean with `wiki` (opening paragraph) or `link` (Wikipedia link), answered from fatline's own
+ZIM, not the web ("keep it in house").
 
 Parked: saving Wikipedia pictures from cyby (KOReader plugin → #sleepy-screens or a folder;
 on ice, 14 Nov 2026); iPod (Rockbox, SD mod, offline music shelf, listening notes); cyby highlights to a
