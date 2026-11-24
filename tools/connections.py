@@ -260,7 +260,7 @@ class Article:
         self.title = entry.title or entry.path.replace("_", " ")
         self.base = posixpath.dirname(entry.path)
         raw = Wiki.html(entry)
-        self.is_disambig_box = bool(re.search(rb"dmbox-disambig|mw-disambig|disambigbox", raw))
+        self.is_disambig_box = bool(re.search(rb"dmbox-disambig|id=.disambigbox", raw))
         self.all_links = raw_links(raw, self.base)
         root = lxml.html.fromstring(raw)
         try:
@@ -750,8 +750,16 @@ def music_candidates(wiki: Wiki, page: Article) -> list:
     and "Name (band)", "Name (singer)" … (musician, label, record or scene pages only)"""
     base = re.sub(r"\s*\(.*?\)\s*$", "", page.title)
     seen, out = {page.path}, []
+    stem = re.sub(r"\W+", "", base).casefold()
+
+    def named_like(path):
+        """a page that goes by this name: its title starts with it ("Nirvana (band)", "Nirvana 2002"), so an
+        artist merely mentioned in a disambiguation entry ("… a song by Azealia Banks") is never a candidate"""
+        return re.sub(r"\W+", "", posixpath.basename(path)).casefold().startswith(stem)
 
     def add(path):
+        if not named_like(path):
+            return
         x = wiki.entry(path)
         if x is None or x.path in seen:
             return
@@ -767,11 +775,11 @@ def music_candidates(wiki: Wiki, page: Article) -> list:
             out.append({"path": x.path, "title": t.title, "kind": k, "first": t.first_sentence})
 
     if page.is_disambig():
-        for p in list(page.mentions)[:40]:
+        for p in list(page.mentions)[:400]:
             add(p)
     d = wiki.exact(f"{base} (disambiguation)")
     if d is not None and d.path != page.path:
-        for p in list(Article(wiki, d).mentions)[:40]:
+        for p in list(Article(wiki, d).mentions)[:400]:
             add(p)
     for sfx in SUFFIXES:
         x = wiki.exact(f"{base} ({sfx})")

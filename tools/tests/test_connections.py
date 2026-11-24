@@ -106,6 +106,7 @@ assert w.exact("hush").title == "Hush"                                        # 
 assert w.exact("orrin vale").path == "Orrin_Vale"
 assert C.Article(w, w.find("Hush (disambiguation)")).is_disambig()
 assert not C.Article(w, w.find("Hush")).is_disambig()
+assert not C.Article(w, w.find("Hush (band)")).is_disambig()                  # its hatnote links to a disambiguation page
 assert C.Article(w, w.find("Mara Quill")).kind() == "person"                  # mentions a label, is not one
 assert C.Article(w, w.find("Kestrel Disk")).kind() == "label"
 for sent in ("Sub Pop is an American independent record label based in Seattle",

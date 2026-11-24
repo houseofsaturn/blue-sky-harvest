@@ -296,6 +296,12 @@ says so; answer is Wikipedia-only). **Open design question: classical.** Compose
 "played with" really means "who recorded them"; labels matter little; the real unit is work + performers (conductor,
 orchestra, soloist). Ideas, not built: a composer shape ("recorded most by", works from Wikipedia), a "recordings of
 <work>" template using MusicBrainz works (needs the `work` tables, not in music.db yet). Wait for JC's view.
+**music.db 0.5 built (24 Nov 2026, exlomax, 14.2 min, 1,277 MB, 3,765,151 label albums)**; copied to fatline as
+`~/musicdb/music.db` (old one kept as `music.db.old` until JC is happy). **"nirvana" bug (24 Nov 2026):** read as Azealia
+Banks, because (a) the band page's hatnote link to "Nirvana (disambiguation)" has class `mw-disambig`, which my check
+took as "this page is a disambiguation page", so "Nirvana (band)" was dropped, and (b) every link on the disambiguation
+page counted as a candidate, incl. artists merely mentioned in an entry. Fixed: only `dmbox-disambig` / `#disambigbox`
+count; a candidate's own title must start with the name asked about; whole list scanned. Regression tests added.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the

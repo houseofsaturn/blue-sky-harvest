@@ -95,13 +95,15 @@ ARTICLES = {
     # a name that is also something else: "Hush" (a state of quiet), two bands, a disambiguation page
     "Hush": page("Hush", [], ['<p><b>Hush</b> is an invented state of quiet in which nothing is said.</p>']),
     "Hush_(band)": page("Hush (band)", [("Years active", "1980–1985"), ("Genres", "punk")], [
+        '<div class="hatnote">"Hush" redirects here. For other uses, see <a href="Hush_(disambiguation)" class="mw-disambig">Hush (disambiguation)</a>.</div>'
         '<p><b>Hush</b> was an invented band from <a href="Harrow_Bend">Harrow Bend</a>.</p>']),
     "Hush_(UK_band)": page("Hush (UK band)", [("Years active", "1990–1991")], [
         '<p><b>Hush</b> was a second invented band that played in cellars.</p>']),
     "Hush_(disambiguation)": page("Hush (disambiguation)", [], [
         '<p><b>Hush</b> may refer to:</p><ul><li><a href="Hush">Hush</a>, a state of quiet</li>'
         '<li><a href="Hush_(band)">Hush (band)</a>, an invented band</li>'
-        '<li><a href="Hush_(UK_band)">Hush (UK band)</a>, another invented band</li></ul>']),
+        '<li><a href="Hush_(UK_band)">Hush (UK band)</a>, another invented band</li>'
+        '<li>"Hush", a song by <a href="Lena_Marsh">Lena Marsh</a></li></ul>']),
     # a name with exactly one music reading
     "Ember": page("Ember", [], ['<p><b>Ember</b> is an invented glowing piece of coal.</p>']),
     "Ember_(band)": page("Ember (band)", [("Years active", "2001–2004")], [
