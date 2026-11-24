@@ -107,6 +107,10 @@ assert w.exact("orrin vale").path == "Orrin_Vale"
 assert C.Article(w, w.find("Hush (disambiguation)")).is_disambig()
 assert not C.Article(w, w.find("Hush")).is_disambig()
 assert not C.Article(w, w.find("Hush (band)")).is_disambig()                  # its hatnote links to a disambiguation page
+for t in ("Grey Cathedral", "Pocket Billiards", "List of compositions by Orrin Vale", "Orrin Vale discography"):
+    assert C.Article(w, w.find(t)).kind() not in ("record", "musician", "label"), t   # not records / artists
+assert C.Article(w, w.find("List of compositions by Orrin Vale")).kind() == "other"
+assert C.Article(w, w.find("Night Choir")).kind() == "record"                # a real album still is one
 assert C.Article(w, w.find("Mara Quill")).kind() == "person"                  # mentions a label, is not one
 assert C.Article(w, w.find("Kestrel Disk")).kind() == "label"
 for sent in ("Sub Pop is an American independent record label based in Seattle",

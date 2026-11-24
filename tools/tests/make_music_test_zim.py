@@ -92,6 +92,15 @@ ARTICLES = {
         '1969 on <a href="Kestrel_Disk">Kestrel Disk</a>.</p>']),
     "Mara_Quill": page("Mara Quill", [("Born", "1941")], [
         '<p><b>Mara Quill</b> is an invented photographer best known for her work with the Kestrel Disk label.</p>']),
+    # pages that look a little like records but are not: a building (Length, Capacity), a sport (Venue), a list
+    "Grey_Cathedral": page("Grey Cathedral", [("Length", "100 m"), ("Capacity", "900")], [
+        '<p><b>Grey Cathedral</b> is an invented cathedral where one composer was married.</p>']),
+    "Pocket_Billiards": page("Pocket Billiards", [("Venue", "Pool halls")], [
+        '<p><b>Pocket Billiards</b> is an invented cue sport.</p>']),
+    "List_of_compositions_by_Orrin_Vale": page("List of compositions by Orrin Vale", [("Works", "many")], [
+        '<p>This is a list of invented compositions by Orrin Vale, a drummer.</p>']),
+    "Orrin_Vale_discography": page("Orrin Vale discography", [("Works", "many")], [
+        '<p>The discography of the invented drummer Orrin Vale.</p>']),
     # a name that is also something else: "Hush" (a state of quiet), two bands, a disambiguation page
     "Hush": page("Hush", [], ['<p><b>Hush</b> is an invented state of quiet in which nothing is said.</p>']),
     "Hush_(band)": page("Hush (band)", [("Years active", "1980–1985"), ("Genres", "punk")], [

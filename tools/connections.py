@@ -373,7 +373,10 @@ class Article:
         # what it "is", from the first sentence: "X is/was an American jazz drummer ..."
         m = re.search(r"\b(?:is|was|are|were)\b(.{0,160})", first)
         what = m.group(1) if m else first
-        if labels & {"released", "recorded", "studio", "length", "producer", "venue"} or ("album" in ic):
+        if re.match(r"List of |Lists of ", self.title) or re.search(r"\bdiscography$|\bfilmography$", self.title, re.I):
+            return "other"                       # lists and discographies are not artists, records or labels
+        # an album/song infobox has Released + Recorded (+ Length); "Length" or "Venue" alone is a cathedral or a sport
+        if labels & {"released", "recorded", "studio"} or ("album" in ic):
             return "record"
         if labels & {"instruments", "instrument(s)", "instrument", "associated acts", "past members",
                      "spinoff of", "spinoffs"} or "musical-artist" in ic \
