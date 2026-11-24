@@ -302,6 +302,14 @@ Banks, because (a) the band page's hatnote link to "Nirvana (disambiguation)" ha
 took as "this page is a disambiguation page", so "Nirvana (band)" was dropped, and (b) every link on the disambiguation
 page counted as a candidate, incl. artists merely mentioned in an entry. Fixed: only `dmbox-disambig` / `#disambigbox`
 count; a candidate's own title must start with the name asked about; whole list scanned. Regression tests added.
+**Composer layout (24 Nov 2026, from JC's Mozart run; connections 0.5):** a page whose first sentence says the person *is* a
+composer first ("a Classical composer", not "a jazz pianist, composer") gets: **People** (Wikipedia links; family, teachers,
+pupils; "person" pages count), **Works** (new kind `work`: first sentence "is an opera / symphony / concerto / quartet /
+requiem …" plus a music-context word), **Most often recorded by** (MusicBrainz pairs read as "albums with his name on";
+other composers dropped because those pairs are couplings, "61 albums with Bach"; top 15; score is relative to the top),
+Records and scenes; no labels, no "albums together" lines. Also: `kind()` record test needs Released/Recorded/Studio
+(a cathedral's "Length" or a sport's "Venue" made them records), "List of …" and "… discography" pages are `other`.
+Not built: "recordings of <work>", MusicBrainz work tables.
 
 Idea in discussion (cyby chat, 14 Nov 2026): **look up later from cyby**. JC highlights a passage on
 cyby, taps a button in KOReader's highlight menu, and it's queued (works offline); on the next sync the

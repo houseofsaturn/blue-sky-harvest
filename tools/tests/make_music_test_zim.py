@@ -92,6 +92,16 @@ ARTICLES = {
         '1969 on <a href="Kestrel_Disk">Kestrel Disk</a>.</p>']),
     "Mara_Quill": page("Mara Quill", [("Born", "1941")], [
         '<p><b>Mara Quill</b> is an invented photographer best known for her work with the Kestrel Disk label.</p>']),
+    # a composer: teacher, a work, a pupil; recorded by an orchestra (MusicBrainz) and coupled with another composer
+    "Ansel_Wren": page("Ansel Wren", [("Born", "1801"), ("Died", "1850")], [
+        '<p><b>Ansel Wren</b> (1801–1850) was an invented Classical composer and teacher.</p>',
+        ("Life", '<p>He studied with <a href="Pietro_Dene">Pietro Dene</a>, whose pupil he became in 1815. His best known '
+                 'work is the opera <a href="The_Quiet_Lamp">The Quiet Lamp</a>. He taught <a href="Mara_Quill">Mara Quill</a>.</p>')]),
+    "Pietro_Dene": page("Pietro Dene", [("Born", "1770")], [
+        '<p><b>Pietro Dene</b> (1770–1840) was an invented composer who taught <a href="Ansel_Wren">Ansel Wren</a>.</p>']),
+    "The_Quiet_Lamp": page("The Quiet Lamp", [], [
+        '<p><i><b>The Quiet Lamp</b></i> is an invented opera in two acts composed by <a href="Ansel_Wren">Ansel Wren</a>.</p>']),
+    "Mass_(physics)": page("Mass (physics)", [], ['<p><b>Mass</b> is a large amount of matter held together.</p>']),
     # pages that look a little like records but are not: a building (Length, Capacity), a sport (Venue), a list
     "Grey_Cathedral": page("Grey Cathedral", [("Length", "100 m"), ("Capacity", "900")], [
         '<p><b>Grey Cathedral</b> is an invented cathedral in a large city.</p>']),

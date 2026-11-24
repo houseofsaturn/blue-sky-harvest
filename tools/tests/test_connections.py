@@ -77,6 +77,10 @@ con.executescript("""
     INSERT INTO label_album VALUES ('Kestrel Disk',1,'Night Choir',1967),('Kestrel Disk',1,'Stone Hours',1970),
         ('Kestrel Disk',2,'Night Choir',1967),('Kestrel Disk',8,'Soft Engines',1969),
         ('Kestrel Disk',9,'Ninth Room',1974),('Kestrel Disk',9,'Glass Weather',1972);
+    INSERT INTO artist VALUES (12,'m12','Ansel Wren','','Person',NULL,NULL,'','Ansel_Wren',NULL),
+        (13,'m13','Glass Orchestra','','Orchestra',NULL,NULL,'',NULL,NULL),
+        (14,'m14','Pietro Dene','','Person',NULL,NULL,'','Pietro_Dene',NULL);
+    INSERT INTO played VALUES (12,13,30,100,'The Quiet Lamp (complete)',1980), (12,14,9,9,'Wren / Dene: couplings',1970);
     INSERT INTO rel VALUES (1,4,'member of band',1964,1972,'drums'), (3,1,'teacher',NULL,NULL,NULL);
     INSERT INTO played VALUES (1,2,2,4,'Night Choir',1967), (1,5,1,0,'Grey Lanterns',1971),
         (1,6,1,3,'Night Choir',1967), (3,7,0,1,NULL,NULL),
@@ -161,6 +165,24 @@ mb_slow.partners = too_slow
 r4 = C.connections(w, seed, progress=False, mb=mb_slow)
 assert r4[0]["title"] == "Lena Marsh" and all(r["mb"] is None for r in r4)
 assert [r["score"] for r in r4] == [r["score"] for r in C.connections(w, seed, progress=False)]   # same as no music.db
+# ---- a composer: people, works, who recorded them; other composers are not "recorders"
+assert C.Article(w, w.find("Ansel Wren")).is_composer()
+assert not C.Article(w, w.find("Orrin Vale")).is_composer()                    # a drummer who composes is a performer
+assert C.composer_head("Duke Ellington was an American jazz pianist, composer and bandleader") is False
+assert C.composer_head("Franz Liszt was a Hungarian composer, virtuoso pianist and teacher") is True
+assert C.Article(w, w.find("The Quiet Lamp")).kind() == "work"
+assert C.Article(w, w.find("Mass (physics)")).kind() != "work"
+wren = C.Article(w, w.find("ansel wren"))
+r5 = C.connections(w, wren, progress=False, mb=mb)
+assert r5.composer_mode
+by5 = {r["title"]: r for r in r5}
+assert by5["The Quiet Lamp"]["kind"] == "work"
+assert by5["Glass Orchestra"]["kind"] == "recorder" and by5["Glass Orchestra"]["score"] == 1.0
+assert by5["Pietro Dene"]["kind"] == "musician" and by5["Pietro Dene"].get("mb") is None   # a composer, not a recorder
+assert by5["Mara Quill"]["kind"] == "musician"                                  # people around a composer count
+assert all(0 <= r["score"] <= 1.0 for r in r5)
+print("✅ composer: people, works, recorded-by; other composers kept out of recorders")
+
 print("✅ slow music.db: given up cleanly, Wikipedia-only scores")
 
 # ---- the real command line, end to end
@@ -179,6 +201,9 @@ o = cli("hush")
 assert o.returncode == 2 or "read as Hush (band)" in o.stdout, o.stdout
 o = cli("ember")
 assert "Ember (band)  (musician)" in o.stdout and "read as Ember (band)" in o.stdout, o.stdout
+o = cli("ansel wren")
+assert "People\n------" in o.stdout and "Works\n-----" in o.stdout and "Most often recorded by" in o.stdout, o.stdout
+assert "30 albums on MusicBrainz" in o.stdout and "albums together" not in o.stdout and "\nLabels" not in o.stdout, o.stdout
 print("✅ command line: label shaped as a label, ambiguous name resolved")
 
 if len(sys.argv) > 1:

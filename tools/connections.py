@@ -128,9 +128,33 @@ MUSIC_CONTEXT = re.compile(r"\b(music|musical|jazz|rock|punk|folk|blues|soul|fun
                            r"dub|electronic|techno|house|ambient|classical|avant-garde|improvis\w*|experimental|"
                            r"noise|drone|psychedelic|disco|metal|pop|song|band)\b", re.I)
 
-KIND_ORDER = [("musician", "Musicians and groups"), ("record", "Records"), ("label", "Labels"),
+# a composer: "composer" is the first thing the page says they are ("a Classical composer", "a German composer,
+# virtuoso pianist"), not after another role ("a jazz pianist, composer" is a performer)
+COMPOSER_HEAD = re.compile(
+    r"^\s*(?:an?|the)\s+(?:(?!(?:drummer|percussionist|saxophonist|pianist|bassist|trumpeter|trombonist|guitarist|"
+    r"singer|vocalist|bandleader|clarinetist|violinist|cellist|organist|keyboardist|rapper|DJ|producer|songwriter|"
+    r"conductor|known|for|of|who|that|which|with|by|in|at|from|on|as|and|or)\b)[\w'’.&–-]+\s+){0,5}?composer\b", re.I)
+# a piece of music: "X is an opera buffa …", "a piano concerto", "a string quartet"; ensembles with an infobox are
+# musicians first, and the sentence must also sound like music (a "mass" can be physics)
+WORK_HEAD = re.compile(
+    r"^\s*(?:an?|the)\s+(?:(?!(?:known|for|of|who|that|which|with|by|in|at|from|on|as|and|or)\b)[\w'’.&–-]+\s+){0,6}?"
+    r"(?:opera|singspiel|operetta|symphony|concerto|sonata|string quartet|piano quartet|string quintet|piano quintet|"
+    r"piano trio|serenade|divertimento|oratorio|cantata|requiem|mass|motet|overture|ballet|suite|rondo|fantasia|"
+    r"fugue|aria|prelude|nocturne|waltz|mazurka|polonaise|partita|song cycle|tone poem|symphonic poem|"
+    r"musical composition|composition for|work for|oratorio)\b", re.I)
+WORK_CONTEXT = re.compile(r"\b(composed|composer|libretto|K\.\s?\d|Op\.\s?\d|movements?|orchestra|piano|violin|cello|"
+                          r"soprano|choir|choral|act|acts|opera|score|key of|in [A-G][ -](?:flat |sharp )?(?:major|minor))\b", re.I)
+
+
+def composer_head(first: str) -> bool:
+    m = re.search(r"\b(?:is|was|are|were)\b(.{0,160})", first or "")
+    return bool(COMPOSER_HEAD.search(m.group(1))) if m else False
+
+
+KIND_ORDER = [("musician", "Musicians and groups"), ("work", "Works"), ("recorder", "Most often recorded by"),
+              ("record", "Records"), ("label", "Labels"),
               ("scene", "Scenes and styles"), ("person", "Other people"), ("place", "Places"), ("other", "Other")]
-MAIN_KINDS = {"musician", "record", "label", "scene"}
+MAIN_KINDS = {"musician", "record", "label", "scene", "work", "recorder"}
 
 
 def norm(s: str) -> str:
@@ -359,6 +383,9 @@ class Article:
                 if all(sent != x[1] for x in lst):
                     lst.append((section or "(opening)", sent, lead, anchor))
 
+    def is_composer(self) -> bool:
+        return composer_head(self.first_sentence)
+
     def is_disambig(self) -> bool:
         """a disambiguation page: "X may refer to:", "X most commonly refers to:", or Wikipedia's own box"""
         return self.is_disambig_box or bool(re.search(
@@ -387,6 +414,8 @@ class Article:
         if labels & {"stylistic origins", "cultural origins", "typical instruments", "derivative forms",
                      "subgenres", "fusion genres"}:
             return "scene"
+        if WORK_HEAD.search(what) and WORK_CONTEXT.search(first):
+            return "work"
         if MUSIC_WORDS.search(what):
             return "musician"
         if RECORD_WORDS.search(what) and re.search(r"\bby\b", what):
@@ -542,6 +571,7 @@ def mb_text(m: dict) -> str:
 class Ranked(list):
     """the ranked connections, plus what the seed was read as (label_mode) and its MusicBrainz name"""
     label_mode = False
+    composer_mode = False
     label_name = ""
 
 
@@ -584,6 +614,7 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
         r["mb"] = None
     seed_kind = seed.kind()
     label_mode = seed_kind == "label"
+    composer_mode = seed_kind == "musician" and seed.is_composer()
     label_name = ""
     ranked_mb = mb
     if mb:
@@ -605,6 +636,9 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
             if progress:
                 print(f" gave up after {mb.budget:.0f}s; Wikipedia only for this one", file=sys.stderr)
         mb.deadline = None
+        if partners and composer_mode:
+            add_recorders(wiki, seed, out, partners, seed_links)
+            partners = {}
         if partners:
             added = 0
             for oid, m in partners.items():
@@ -647,7 +681,7 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
             m = r.get("mb")
             parts["on label"] = 0.30 * min(m["albums"], 4) / 4 if m else 0.0
             parts = {k: v / split for k, v in parts.items()}
-        elif ranked_mb:
+        elif ranked_mb and not composer_mode:
             m = r.get("mb")
             parts["played"] = (0.25 * min(m["albums"], 3) / 3 if m and m["albums"] else
                                0.10 * min(m["tracks"], 10) / 10 if m and m["tracks"] else 0.0)
@@ -655,11 +689,56 @@ def connections(wiki: Wiki, seed: Article, progress=True, mb: "MusicDB | None" =
             parts = {k: v / split for k, v in parts.items()}
         r["parts"] = parts
         r["score"] = round(sum(parts.values()), 3)
+    if composer_mode:
+        for r in out.values():
+            if r["kind"] == "person":
+                r["kind"] = "musician"           # for a composer the people around them (family, patrons) matter
+        recs = [r for r in out.values() if r["kind"] == "recorder"]
+        top = max((r["mb"]["albums"] for r in recs), default=1) or 1
+        for r in recs:
+            r["score"] = round(r["mb"]["albums"] / top, 3)    # relative: the most recorded-by is 1.00
     ranked = Ranked(sorted(out.values(), key=lambda r: (-r["score"], -len(r["mentions"]), -r["shared"])))
     ranked.label_mode, ranked.label_name = label_mode, label_name
+    ranked.composer_mode = composer_mode
     if label_mode:
         attach_works(ranked)
     return ranked
+
+
+def add_recorders(wiki: Wiki, seed: Article, out: dict, partners: dict, seed_links, keep: int = 15) -> None:
+    """for a composer: MusicBrainz "played" pairs are albums with the composer's name on them, so the useful
+    reading is who recorded them. Other composers (couplings: "Beethoven: … / Mozart: …") are dropped."""
+    found = []
+    for oid, m in partners.items():
+        if not m["albums"]:
+            continue
+        e = wiki.entry(m["wiki"]) if m["wiki"] else None
+        if e is not None and e.path == seed.path:
+            continue
+        first = None
+        if e is not None:
+            first = out[e.path]["first"] if e.path in out else None
+            if first is None:
+                try:
+                    first = Article(wiki, e, full=False).first_sentence
+                except Exception:
+                    first = ""
+            if composer_head(first):
+                continue
+        found.append((m, e))
+    for m, e in sorted(found, key=lambda t: -t[0]["albums"])[:keep]:
+        if e is not None and e.path in out:
+            out[e.path]["kind"], out[e.path]["mb"] = "recorder", m
+        elif e is not None:
+            try:
+                target = Article(wiki, e, full=False)
+            except Exception:
+                continue
+            out[e.path] = {"path": e.path, "title": target.title, "kind": "recorder", "first": target.first_sentence,
+                           "mentions": [], "infobox": None, "back": False, "shared": 0.0, "mb": m}
+        else:
+            out[f"mb:{m['id']}"] = {"path": None, "title": m["name"], "kind": "recorder", "first": "", "mentions": [],
+                                    "infobox": None, "back": False, "shared": 0.0, "mb": m, "offwiki": True}
 
 
 def attach_works(ranked: list) -> None:
@@ -889,7 +968,7 @@ def main():
         sys.exit(f"No article for “{a.name}”." + (" Did you mean: " + "; ".join(alts) if alts else ""))
 
     kind = seed.kind()
-    print(f"\n{seed.title}  ({kind})")
+    print(f"\n{seed.title}  ({'composer' if kind == 'musician' and seed.is_composer() else kind})")
     if note:
         print(f"  ({note})")
     if seed.first_sentence:
@@ -906,13 +985,18 @@ def main():
 
     ranked = connections(wiki, seed, mb=mb)
     label_mode = ranked.label_mode
+    composer_mode = ranked.composer_mode
     headings = {**dict(KIND_ORDER), **LABEL_HEADINGS} if label_mode else dict(KIND_ORDER)
+    if composer_mode:
+        headings["musician"] = "People"
     used = {}                                   # sentences already shown, so none is repeated
     shown = 0
     for k, _ in KIND_ORDER:
         heading = headings[k]
         if k not in MAIN_KINDS and not a.all:
             continue
+        if composer_mode and k == "label":
+            continue                            # labels hardly matter for a composer: the performers do
         floor = 0.20 if label_mode and k == "label" else 0.12
         rows = [r for r in ranked if r["kind"] == k and not r.get("owner")
                 and (r["score"] > floor or (k in MAIN_KINDS and not (label_mode and k == "label")
@@ -928,6 +1012,11 @@ def main():
                 w = works_line(r, mb, ranked.label_name)
                 if w:
                     print(f"      {w}")
+            if k == "recorder":
+                m = r["mb"]
+                print(f"      {m['albums']} albums on MusicBrainz"
+                      + (f"; first: {m['example']}" + (f" ({m['year']})" if m.get("year") else "") if m.get("example") else ""))
+                continue
             why = reason(r, used)
             if why:
                 print(f"      {why}")
