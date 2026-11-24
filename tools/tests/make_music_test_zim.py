@@ -94,7 +94,7 @@ ARTICLES = {
         '<p><b>Mara Quill</b> is an invented photographer best known for her work with the Kestrel Disk label.</p>']),
     # pages that look a little like records but are not: a building (Length, Capacity), a sport (Venue), a list
     "Grey_Cathedral": page("Grey Cathedral", [("Length", "100 m"), ("Capacity", "900")], [
-        '<p><b>Grey Cathedral</b> is an invented cathedral where one composer was married.</p>']),
+        '<p><b>Grey Cathedral</b> is an invented cathedral in a large city.</p>']),
     "Pocket_Billiards": page("Pocket Billiards", [("Venue", "Pool halls")], [
         '<p><b>Pocket Billiards</b> is an invented cue sport.</p>']),
     "List_of_compositions_by_Orrin_Vale": page("List of compositions by Orrin Vale", [("Works", "many")], [
