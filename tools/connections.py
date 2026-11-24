@@ -66,7 +66,7 @@ try:
 except ImportError:
     sys.exit("connections: needs lxml.  exlo: sudo apt install python3-lxml   other: pip install lxml")
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 # ---------------------------------------------------------------- what to skip (from WIKISTACK's parser)
 SKIP_CLASS = {"mw-editsection", "navbox", "navbox-styles", "metadata", "noprint", "sidebar", "ambox", "hatnote",
